@@ -1,0 +1,41 @@
+{
+  "name": "kortyx",
+  "version": "0.1.0",
+  "packageManager": "pnpm@10.0.0",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo build",
+    "dev": "dotenv -e .env -- turbo run dev",
+    "dev:all": "turbo run dev --parallel",
+    "lint": "biome check .",
+    "test": "turbo run test",
+    "type-check": "turbo type-check",
+    "type-check:watch": "turbo type-check --watch",
+    "start": "turbo start",
+    "clean": "rm -rf .turbo && rm -rf apps/**/.next apps/**/dist packages/**/dist && find . -name '*.tsbuildinfo' -delete",
+    "format": "biome check --apply .",
+    "format:check": "biome check .",
+    "prepare": "command -v husky >/dev/null 2>&1 && husky || echo 'Husky not available, skipping'"
+  },
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "@biomejs/biome": "^2.3.4",
+    "@types/node": "20",
+    "husky": "^9.1.7",
+    "lint-staged": "^16.1.5",
+    "turbo": "2.6.1",
+    "typescript": "5.9.3"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx,json,css,md}": [
+      "biome check --apply --"
+    ]
+  }
+}

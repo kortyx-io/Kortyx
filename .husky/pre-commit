@@ -1,0 +1,7 @@
+#!/bin/sh
+# Load nvm if available
+[ -s "$HOME/.nvm/nvm.sh" ] && \. "$HOME/.nvm/nvm.sh"
+# Add common package manager paths
+export PATH="$HOME/.local/bin:/opt/homebrew/bin:/usr/local/bin:$PATH"
+# Use pnpm from PATH or fallback to npx
+command -v pnpm >/dev/null 2>&1 && pnpm exec lint-staged || npx pnpm exec lint-staged

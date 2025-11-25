@@ -1,0 +1,50 @@
+{
+  "compilerOptions": {
+    "target": "ES2023",
+    "lib": ["ES2023"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+
+    // 🚀 Speed-ups
+    "skipLibCheck": true, // don't type-check node_modules
+    "incremental": false, // disable incremental in IDE (faster)
+    "declaration": false, // only needed for publishing libs
+    "declarationMap": false,
+    "sourceMap": false, // IDE doesn’t need source maps
+    "removeComments": true, // smaller AST = faster
+    "noEmit": true, // IDE doesn’t need emit
+
+    // ✅ Keep safety features
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "allowUnreachableCode": false,
+    "allowUnusedLabels": false,
+    "exactOptionalPropertyTypes": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true,
+    "noImplicitReturns": true,
+    "noUncheckedIndexedAccess": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noPropertyAccessFromIndexSignature": false
+  },
+  "include": ["src"],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "build",
+    ".next",
+    "out",
+    "coverage",
+    "**/.turbo",
+    "**/.cache",
+    "**/cache",
+    "**/*.tsbuildinfo",
+    "**/standalone",
+    "**/chunks"
+  ]
+}
