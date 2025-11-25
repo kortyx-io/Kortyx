@@ -8,6 +8,9 @@ node_modules/
 !.yarn/releases
 !.yarn/versions
 
+.pnpm-store/
+
+
 # testing
 /coverage
 
