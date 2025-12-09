@@ -1,0 +1,3 @@
+[submodule "apps/studio"]
+	path = apps/studio
+	url = https://github.com/kortyx-io/studio-private.git
