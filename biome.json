@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.3.4/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.3.7/schema.json",
   "vcs": {
     "enabled": true,
     "clientKind": "git",
@@ -7,16 +7,17 @@
   },
   "files": {
     "ignoreUnknown": true,
-    "ignore": [
-      "**/node_modules/**",
-      "**/dist/**",
-      "**/build/**",
-      "**/.next/**",
-      "**/out/**",
-      "**/coverage/**",
-      "**/*.d.ts",
-      "**/storybook-static/**",
-      "**/.turbo/**"
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/build",
+      "!**/.next",
+      "!**/out",
+      "!**/coverage",
+      "!**/*.d.ts",
+      "!**/storybook-static",
+      "!**/.turbo"
     ]
   },
   "formatter": {
@@ -29,7 +30,7 @@
     "formatter": {
       "arrowParentheses": "always",
       "bracketSpacing": true,
-      "jsxBracketSameLine": false,
+      "bracketSameLine": false,
       "jsxQuoteStyle": "double",
       "quoteStyle": "double",
       "quoteProperties": "asNeeded",
@@ -55,16 +56,18 @@
             "allow": ["warn", "error"]
           }
         },
+        "noExplicitAny": "warn"
+      },
+      "style": {
+        "useConst": "error"
+      },
+      "correctness": {
         "noUnusedVariables": {
           "level": "error",
           "options": {
-            "ignorePattern": "^_"
+            "ignoreRestSiblings": true
           }
         }
-      },
-      "style": {
-        "noExplicitAny": "warn",
-        "useConst": "error"
       }
     },
     "domains": {

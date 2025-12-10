@@ -13,7 +13,7 @@
       "persistent": true,
       "dependsOn": [],
       "outputs": [],
-      "env": []
+      "env": ["WEBSITE_PORT"]
     },
     "lint": {
       "dependsOn": ["^build"]
