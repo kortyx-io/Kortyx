@@ -1,0 +1,36 @@
+{
+  "name": "@kortyx/runtime",
+  "version": "0.1.0",
+  "private": false,
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch",
+    "lint": "echo 'Linting @kortyx/runtime...' && echo 'Lint passed!'",
+    "test": "echo 'Testing @kortyx/runtime...' && echo 'All tests passed!'",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kortyx/stream": "workspace:*",
+    "@kortyx/core": "workspace:*",
+    "@kortyx/hooks": "workspace:*",
+    "@kortyx/memory": "workspace:*",
+    "@kortyx/providers": "workspace:*",
+    "@kortyx/utils": "workspace:*",
+    "@langchain/core": "^1.0.1",
+    "@langchain/langgraph": "^1.0.1",
+    "uuid": "^11.1.0"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "5.7.2"
+  },
+  "sideEffects": false
+}

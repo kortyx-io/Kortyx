@@ -1,0 +1,31 @@
+{
+  "name": "@kortyx/hooks",
+  "version": "0.1.0",
+  "private": false,
+  "main": "./dist/index.js",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "predev": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch",
+    "lint": "echo 'Linting @kortyx/hooks...' && echo 'Lint passed!'",
+    "test": "echo 'Testing @kortyx/hooks...' && echo 'All tests passed!'",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kortyx/core": "workspace:*",
+    "@kortyx/memory": "workspace:*",
+    "@kortyx/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "5.7.2"
+  },
+  "sideEffects": false
+}

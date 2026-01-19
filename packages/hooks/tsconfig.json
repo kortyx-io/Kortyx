@@ -1,0 +1,27 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "moduleResolution": "node",
+    "declaration": true,
+    "declarationMap": true,
+    "incremental": true,
+    "noEmit": false,
+    "composite": true
+  },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../memory"
+    },
+    {
+      "path": "../providers"
+    }
+  ],
+  "include": ["src/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

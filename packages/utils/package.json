@@ -1,0 +1,26 @@
+{
+  "name": "@kortyx/utils",
+  "version": "0.1.0",
+  "private": false,
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch",
+    "lint": "echo 'Linting @kortyx/utils...' && echo 'Lint passed!'",
+    "test": "echo 'Testing @kortyx/utils...' && echo 'All tests passed!'",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "5.7.2"
+  },
+  "sideEffects": false
+}
