@@ -24,5 +24,10 @@
     "concurrently": "^9.2.0",
     "turbo": "^2.5.4",
     "typescript": "5.7.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kortyx-io/kortyx",
+    "directory": "packages/stream"
   }
 }
