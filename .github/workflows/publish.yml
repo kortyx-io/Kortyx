@@ -20,6 +20,7 @@ jobs:
   publish:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
+    environment: Actions Environment
     steps:
       - name: Checkout
         uses: actions/checkout@v4
