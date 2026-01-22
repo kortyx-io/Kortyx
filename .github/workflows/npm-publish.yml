@@ -15,12 +15,13 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  id-token: write
 
 jobs:
   publish:
     runs-on: ubuntu-latest
     if: github.ref == 'refs/heads/main'
-    environment: Actions Environment
+    environment: NPM Package Publishing
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -59,14 +60,13 @@ jobs:
 
       - name: Publish packages
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
           PUBLISH_TAG: ${{ github.event.inputs.channel == 'beta' && 'beta' || 'latest' }}
         run: |
           node -e "
           const { execSync } = require('node:child_process');
           const { readdirSync, readFileSync } = require('node:fs');
           const { join } = require('node:path');
+          const { tmpdir } = require('node:os');
 
           const root = process.cwd();
           const packagesDir = join(root, 'packages');
@@ -142,8 +142,19 @@ jobs:
               continue;
             }
             const selector = './' + p.dir;
-            console.log('Publishing ' + selector + ' as ' + full + '...');
-            const cmd = 'pnpm --filter ' + selector + ' publish --access public --no-git-checks --tag ' + tag;
+            const packDir = join(tmpdir(), 'npm-pack-' + Date.now());
+            execSync('mkdir -p ' + packDir);
+
+            console.log('Packing ' + selector + '...');
+            execSync('pnpm --filter ' + selector + ' pack --pack-destination ' + packDir, { stdio: 'inherit' });
+
+            const tarballName = p.name.startsWith('@')
+              ? p.name.slice(1).replace('/', '-') + '-' + p.version + '.tgz'
+              : p.name + '-' + p.version + '.tgz';
+            const tarballPath = join(packDir, tarballName);
+
+            console.log('Publishing ' + tarballPath + ' as ' + full + '...');
+            const cmd = 'npm publish ' + tarballPath + ' --provenance --access public --tag ' + tag;
             execSync(cmd, { stdio: 'inherit' });
           }
           "
