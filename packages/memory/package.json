@@ -27,11 +27,16 @@
       "default": "./dist/index.js"
     }
   },
+  "files": [
+    "dist/**",
+    "README.md",
+    "CHANGELOG.md"
+  ],
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "dev": "tsc --watch",
-    "lint": "echo 'Linting @kortyx/memory...' && echo 'Lint passed!'",
-    "test": "echo 'Testing @kortyx/memory...' && echo 'All tests passed!'",
+    "lint": "biome check src",
+    "test": "pnpm -s type-check",
     "type-check": "tsc --noEmit"
   },
   "dependencies": {

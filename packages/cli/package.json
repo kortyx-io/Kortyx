@@ -18,6 +18,15 @@
     "url": "https://github.com/kortyx-io/kortyx/issues"
   },
   "author": "Kortyx (https://github.com/kortyx-io)",
+  "files": [
+    "dist/**",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "lint": "biome check .",
+    "test": "echo 'No tests yet.'"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/kortyx-io/kortyx",
