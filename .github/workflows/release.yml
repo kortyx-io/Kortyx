@@ -2,15 +2,6 @@ name: Prepare Release PR (Repo)
 
 on:
   workflow_dispatch:
-    inputs:
-      channel:
-        description: Release channel
-        type: choice
-        required: true
-        default: stable
-        options:
-          - stable
-          - beta
 
 permissions:
   contents: write
@@ -50,16 +41,7 @@ jobs:
 
       - name: Release Please (stable)
         id: release
-        if: github.event.inputs.channel != 'beta'
         uses: googleapis/release-please-action@v4
         with:
           config-file: .github/release-please/config.json
           manifest-file: .github/release-please/manifest.json
-
-      - name: Release Please (beta)
-        id: release_beta
-        if: github.event.inputs.channel == 'beta'
-        uses: googleapis/release-please-action@v4
-        with:
-          config-file: .github/release-please/config.beta.json
-          manifest-file: .github/release-please/manifest.beta.json

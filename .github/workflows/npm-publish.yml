@@ -2,15 +2,6 @@ name: Publish Release (NPM Packages)
 
 on:
   workflow_dispatch:
-    inputs:
-      channel:
-        description: Release channel
-        type: choice
-        required: true
-        default: stable
-        options:
-          - stable
-          - beta
 
 permissions:
   contents: write
@@ -44,23 +35,13 @@ jobs:
       - name: Build
         run: pnpm build
 
-      - name: Release Please (stable)
-        if: github.event.inputs.channel != 'beta'
+      - name: Release Please
         uses: googleapis/release-please-action@v4
         with:
           config-file: .github/release-please/config.json
           manifest-file: .github/release-please/manifest.json
 
-      - name: Release Please (beta)
-        if: github.event.inputs.channel == 'beta'
-        uses: googleapis/release-please-action@v4
-        with:
-          config-file: .github/release-please/config.beta.json
-          manifest-file: .github/release-please/manifest.beta.json
-
       - name: Publish packages
-        env:
-          PUBLISH_TAG: ${{ github.event.inputs.channel == 'beta' && 'beta' || 'latest' }}
         run: |
           node -e "
           const { execSync } = require('node:child_process');
@@ -127,7 +108,7 @@ jobs:
             for (const p of pkgs) order.push(p.name);
           }
 
-          const tag = process.env.PUBLISH_TAG || 'latest';
+          const tag = 'latest';
           for (const name of order) {
             const p = nameToPkg.get(name);
             const full = p.name + '@' + p.version;
