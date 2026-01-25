@@ -154,13 +154,21 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         return key;
       };
 
+      const getLivePiece = (key: string) => {
+        const existingId = livePieceIds[key];
+        const id = existingId ?? createId();
+        if (!existingId) livePieceIds[key] = id;
+        const content = liveBuffers[key] ?? "";
+        if (liveBuffers[key] === undefined) liveBuffers[key] = "";
+        return { id, content };
+      };
+
       const previewPieces = () => [
         ...accPieces,
-        ...liveOrder.map((n) => ({
-          id: livePieceIds[n],
-          type: "text",
-          content: liveBuffers[n],
-        })),
+        ...liveOrder.map((n) => {
+          const { id, content } = getLivePiece(n);
+          return { id, type: "text" as const, content };
+        }),
       ];
 
       const body = resp.body;
@@ -213,7 +221,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           const buf = liveBuffers[key];
           if (buf)
             accPieces.push({
-              id: livePieceIds[key],
+              id: getLivePiece(key).id,
               type: "text",
               content: buf,
             });
@@ -319,8 +327,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       // Flush any remaining live buffers into finalized pieces
       for (const key of liveOrder) {
         const buf = liveBuffers[key];
-        if (buf)
-          accPieces.push({ id: livePieceIds[key], type: "text", content: buf });
+        if (buf) {
+          accPieces.push({
+            id: getLivePiece(key).id,
+            type: "text",
+            content: buf,
+          });
+        }
       }
 
       const aId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -435,13 +448,21 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
         }
         return key;
       };
+      const getLivePiece = (key: string) => {
+        const existingId = livePieceIds[key];
+        const id = existingId ?? createId();
+        if (!existingId) livePieceIds[key] = id;
+        const content = liveBuffers[key] ?? "";
+        if (liveBuffers[key] === undefined) liveBuffers[key] = "";
+        return { id, content };
+      };
+
       const previewPieces = () => [
         ...accPieces,
-        ...liveOrder.map((n) => ({
-          id: livePieceIds[n],
-          type: "text",
-          content: liveBuffers[n],
-        })),
+        ...liveOrder.map((n) => {
+          const { id, content } = getLivePiece(n);
+          return { id, type: "text" as const, content };
+        }),
       ];
       const body = resp.body;
       if (!body) {
@@ -489,7 +510,7 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
           const buf = liveBuffers[key];
           if (buf)
             accPieces.push({
-              id: livePieceIds[key],
+              id: getLivePiece(key).id,
               type: "text",
               content: buf,
             });
@@ -584,8 +605,13 @@ export function ChatProvider({ children }: { children: React.ReactNode }) {
       }
       for (const key of liveOrder) {
         const buf = liveBuffers[key];
-        if (buf)
-          accPieces.push({ id: livePieceIds[key], type: "text", content: buf });
+        if (buf) {
+          accPieces.push({
+            id: getLivePiece(key).id,
+            type: "text",
+            content: buf,
+          });
+        }
       }
       const aId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
       const plainTextContent = accPieces
