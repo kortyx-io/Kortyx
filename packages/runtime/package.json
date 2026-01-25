@@ -2,6 +2,22 @@
   "name": "@kortyx/runtime",
   "version": "0.2.2",
   "private": false,
+  "description": "Runtime/orchestration wiring for Kortyx.",
+  "keywords": [
+    "ai",
+    "agent",
+    "agents",
+    "orchestration",
+    "framework",
+    "runtime",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/runtime#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
   "exports": {

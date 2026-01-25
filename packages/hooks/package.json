@@ -2,6 +2,22 @@
   "name": "@kortyx/hooks",
   "version": "0.2.2",
   "private": false,
+  "description": "Lifecycle hooks and extension points for Kortyx.",
+  "keywords": [
+    "ai",
+    "agent",
+    "agents",
+    "orchestration",
+    "framework",
+    "hooks",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/hooks#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
   "exports": {

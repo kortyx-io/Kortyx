@@ -2,6 +2,22 @@
   "name": "@kortyx/core",
   "version": "0.2.2",
   "private": false,
+  "description": "Core primitives and shared types for the Kortyx framework.",
+  "keywords": [
+    "ai",
+    "agent",
+    "agents",
+    "orchestration",
+    "framework",
+    "core",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/core#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

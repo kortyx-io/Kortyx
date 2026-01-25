@@ -2,6 +2,23 @@
   "name": "@kortyx/providers",
   "version": "0.2.2",
   "private": false,
+  "description": "Provider integrations (LLMs and related services) for Kortyx.",
+  "keywords": [
+    "ai",
+    "agent",
+    "agents",
+    "orchestration",
+    "framework",
+    "providers",
+    "llm",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/providers#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {

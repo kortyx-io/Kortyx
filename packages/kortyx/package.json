@@ -2,6 +2,21 @@
   "name": "kortyx",
   "version": "0.2.2",
   "private": false,
+  "description": "The batteries-included Kortyx package that aggregates the core building blocks.",
+  "keywords": [
+    "ai",
+    "agent",
+    "agents",
+    "orchestration",
+    "framework",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/kortyx#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
   "main": "./dist/index.js",
   "types": "./src/index.ts",
   "exports": {

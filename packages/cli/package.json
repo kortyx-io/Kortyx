@@ -2,6 +2,22 @@
   "name": "@kortyx/cli",
   "version": "0.1.2",
   "private": false,
+  "description": "CLI tooling for Kortyx.",
+  "keywords": [
+    "ai",
+    "agent",
+    "agents",
+    "orchestration",
+    "framework",
+    "cli",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/cli#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
   "repository": {
     "type": "git",
     "url": "https://github.com/kortyx-io/kortyx",
