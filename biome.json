@@ -75,6 +75,18 @@
       "react": "recommended"
     }
   },
+  "overrides": [
+    {
+      "includes": ["examples/**"],
+      "linter": {
+        "rules": {
+          "security": {
+            "noDangerouslySetInnerHtml": "off"
+          }
+        }
+      }
+    }
+  ],
   "assist": {
     "actions": {
       "source": {

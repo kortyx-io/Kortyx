@@ -51,6 +51,8 @@ Thumbs.db
 # Next.js / TypeScript generated files
 next-env.d.ts
 **/next-env.d.ts
+*.tsbuildinfo
+**/*.tsbuildinfo
 
 # Cursor configuration with sensitive data
 .cursor/mcp.json

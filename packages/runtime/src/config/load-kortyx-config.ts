@@ -1,6 +1,6 @@
-import { stat } from "fs/promises";
-import { resolve } from "path";
-import { pathToFileURL } from "url";
+import { stat } from "node:fs/promises";
+import { resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 export interface KortyxConfig {
   workflowsDir?: string;

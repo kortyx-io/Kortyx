@@ -28,6 +28,10 @@ pnpm build
 
 Each package has its own README under its folder and is published to npm.
 
+## Examples
+
+- `examples/kortyx-nextjs-chat`: Next.js chat app example
+
 ## Contributing
 
 See `CONTRIBUTING.md`.
@@ -39,4 +43,3 @@ See `SECURITY.md`.
 ## License
 
 Apache-2.0 (see `LICENSE`).
-

@@ -4,7 +4,7 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"],
+      "outputs": ["dist/**", ".next/**", "out/**"],
       "env": [],
       "cache": false
     },
@@ -13,10 +13,14 @@
       "persistent": true,
       "dependsOn": [],
       "outputs": [],
-      "env": ["WEBSITE_PORT"]
+      "env": [
+        "WEBSITE_PORT",
+        "KORTYX_NEXTJS_CHAT_PORT",
+        "NEXT_PUBLIC_KORTYX_API_URL"
+      ]
     },
     "lint": {
-      "dependsOn": ["^build"]
+      "outputs": []
     },
     "type-check": {
       "dependsOn": ["^type-check"],

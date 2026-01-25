@@ -43,6 +43,10 @@
     "packages/utils": {
       "package-name": "@kortyx/utils",
       "component": "utils"
+    },
+    "examples/kortyx-nextjs-chat": {
+      "package-name": "@kortyx/example-nextjs-chat",
+      "component": "example-nextjs-chat"
     }
   }
 }

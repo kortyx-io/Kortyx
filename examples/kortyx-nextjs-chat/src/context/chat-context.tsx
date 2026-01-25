@@ -1,0 +1,636 @@
+"use client";
+
+import { readStream, type StreamChunk } from "@kortyx/stream";
+import type React from "react";
+import { createContext, useRef, useState } from "react";
+import { apiConfig, buildApiUrl } from "@/lib/config/api";
+
+export type StructuredData = {
+  type: "structured-data";
+  node?: string;
+  dataType?: string;
+  data: Record<string, unknown>;
+};
+
+export type HumanInputPiece = {
+  id: string;
+  type: "interrupt";
+  resumeToken: string;
+  requestId: string;
+  kind: "text" | "choice" | "multi-choice";
+  question?: string;
+  multiple: boolean;
+  options: Array<{ id: string; label: string; description?: string }>;
+};
+
+export type ContentPiece =
+  | { id: string; type: "text"; content: string }
+  | { id: string; type: "structured"; data: StructuredData }
+  | { id: string; type: "error"; content: string }
+  | HumanInputPiece;
+
+export type ChatMsg = {
+  id: string;
+  role: "user" | "assistant";
+  content: string;
+  contentPieces?: ContentPiece[];
+  debug?: StreamChunk[];
+};
+
+export type ChatContextValue = {
+  messages: ChatMsg[];
+  isStreaming: boolean;
+  streamContentPieces: ContentPiece[];
+  streamDebug: StreamChunk[];
+  lastAssistantId: string | null;
+  send: (text: string) => Promise<void> | void;
+  respondToHumanInput: (args: {
+    resumeToken: string;
+    requestId: string;
+    selected: string[];
+    text?: string;
+  }) => Promise<void> | void;
+  setMessages: React.Dispatch<React.SetStateAction<ChatMsg[]>>;
+  includeHistory: boolean;
+  setIncludeHistory: React.Dispatch<React.SetStateAction<boolean>>;
+};
+
+export const ChatContext = createContext<ChatContextValue | null>(null);
+
+export function ChatProvider({ children }: { children: React.ReactNode }) {
+  const [messages, setMessages] = useState<ChatMsg[]>([]);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamContentPieces, setStreamContentPieces] = useState<
+    ContentPiece[]
+  >([]);
+  const [streamDebug, setStreamDebug] = useState<StreamChunk[]>([]);
+  const [lastAssistantId, setLastAssistantId] = useState<string | null>(null);
+  const [includeHistory, setIncludeHistory] = useState(true);
+  const sawDeltaRef = useRef(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+
+  const createId = () => {
+    try {
+      if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+        return crypto.randomUUID();
+      }
+    } catch {}
+    return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  };
+
+  const send = async (text: string) => {
+    const content = text.trim();
+    if (!content || isStreaming) return;
+
+    // Check if there's an active text interrupt - if so, respond to it instead
+    const activeTextInterrupt = streamContentPieces.find(
+      (p): p is HumanInputPiece => p.type === "interrupt" && p.kind === "text",
+    );
+
+    if (activeTextInterrupt) {
+      // Respond to the text interrupt
+      await respondToHumanInput({
+        resumeToken: activeTextInterrupt.resumeToken,
+        requestId: activeTextInterrupt.requestId,
+        selected: [content], // User's typed text as the selection
+        text: content,
+      });
+      return;
+    }
+
+    const userId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const userMsg: ChatMsg = { id: userId, role: "user", content };
+    setMessages((prev) => [...prev, userMsg]);
+
+    setIsStreaming(true);
+    setStreamContentPieces([]);
+    setStreamDebug([]);
+    sawDeltaRef.current = false;
+
+    try {
+      const messagesToSend = includeHistory
+        ? [...messages, { role: "user", content }]
+        : [{ role: "user", content }];
+      const payload = { messages: messagesToSend };
+      const url = buildApiUrl(
+        apiConfig.endpoints.chat,
+        sessionId ? { stream: "true", sessionId } : { stream: "true" },
+      );
+      const preDebug: StreamChunk = {
+        type: "status",
+        message: `POST ${url} (send)`,
+      } as StreamChunk;
+      setStreamDebug((d) => [...d, preDebug]);
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      if (!resp.ok) {
+        setStreamDebug((d) => [
+          ...d,
+          { type: "error", message: `HTTP ${resp.status}` } as StreamChunk,
+        ]);
+        return;
+      }
+
+      // Finalized pieces in arrival order
+      const accPieces: ContentPiece[] = [];
+      // In-flight text buffers keyed by node so multiple nodes can stream concurrently
+      const liveBuffers: Record<string, string> = {};
+      const liveOrder: string[] = [];
+      const livePieceIds: Record<string, string> = {};
+      const accDebug: StreamChunk[] = [preDebug];
+      let lastTs = 0;
+
+      const ensureLiveNode = (node?: string) => {
+        const key = node ?? "__unknown__";
+        if (!(key in liveBuffers)) {
+          liveBuffers[key] = "";
+          liveOrder.push(key);
+          livePieceIds[key] = createId();
+        }
+        return key;
+      };
+
+      const previewPieces = () => [
+        ...accPieces,
+        ...liveOrder.map((n) => ({
+          id: livePieceIds[n],
+          type: "text",
+          content: liveBuffers[n],
+        })),
+      ];
+
+      const body = resp.body;
+      if (!body) {
+        setStreamDebug((d) => [
+          ...d,
+          { type: "error", message: `No response body` } as StreamChunk,
+        ]);
+        return;
+      }
+      type DebugChunk = StreamChunk & { _ts: number; _dt: number };
+      for await (const chunk of readStream(body)) {
+        const ts = Date.now();
+        const withMeta: DebugChunk = {
+          ...chunk,
+          _ts: ts,
+          _dt: lastTs ? ts - lastTs : 0,
+        };
+        lastTs = ts;
+        accDebug.push(withMeta);
+        setStreamDebug((d) =>
+          d.length > 1000 ? [...d.slice(-1000), withMeta] : [...d, withMeta],
+        );
+
+        // Capture server-issued session id on first response
+        if (chunk.type === "session") {
+          const sid = (chunk as { type: "session"; sessionId: string })
+            .sessionId;
+          setSessionId(sid);
+          try {
+            if (typeof localStorage !== "undefined")
+              localStorage.setItem("chat.sessionId", sid);
+          } catch {}
+          continue;
+        }
+
+        if (chunk.type === "text-start") {
+          const chunkNode = chunk.node;
+          ensureLiveNode(chunkNode);
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "text-delta") {
+          sawDeltaRef.current = true;
+          const deltaStr = chunk.delta;
+          const key = ensureLiveNode(chunk.node);
+          liveBuffers[key] = (liveBuffers[key] || "") + deltaStr;
+          // Show finalized pieces + all live buffers in stable order
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "text-end") {
+          const key = ensureLiveNode(chunk.node);
+          const buf = liveBuffers[key];
+          if (buf)
+            accPieces.push({
+              id: livePieceIds[key],
+              type: "text",
+              content: buf,
+            });
+          // remove from live tracking
+          delete liveBuffers[key];
+          delete livePieceIds[key];
+          const idx = liveOrder.indexOf(key);
+          if (idx >= 0) liveOrder.splice(idx, 1);
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "structured-data") {
+          // Keep live buffers as-is; append structured data as a finalized piece
+          const structuredChunk: StructuredData = {
+            type: "structured-data",
+            ...(chunk.node !== undefined && { node: chunk.node }),
+            ...(chunk.dataType !== undefined && { dataType: chunk.dataType }),
+            data: chunk.data as unknown as Record<string, unknown>,
+          };
+          accPieces.push({
+            id: createId(),
+            type: "structured",
+            data: structuredChunk,
+          });
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "interrupt") {
+          interface HumanInputStreamChunk {
+            type: "interrupt";
+            requestId: string | undefined;
+            resumeToken: string | undefined;
+            input?: {
+              kind?: "text" | "choice" | "multi-choice";
+              question?: string;
+              multiple?: boolean;
+              options?: Array<{
+                id?: string | number;
+                label?: string;
+                description?: string;
+              }>;
+            };
+          }
+          const hi = chunk as unknown as HumanInputStreamChunk;
+          const input = hi.input ?? {};
+          const kind =
+            input.kind || (input.multiple ? "multi-choice" : "choice");
+          const isText = kind === "text";
+
+          const question = isText
+            ? input.question // Optional for text
+            : typeof input.question === "string"
+              ? input.question
+              : "Please choose"; // Required for choice
+
+          const optionsSrc = Array.isArray(input.options) ? input.options : [];
+          const optionsArr: Array<{
+            id: string;
+            label: string;
+            description?: string;
+          }> = optionsSrc
+            .map((o) => ({
+              id: String(o.id ?? ""),
+              label: String(o.label ?? ""),
+              ...(typeof o.description === "string" && o.description
+                ? { description: o.description }
+                : {}),
+            }))
+            .filter((o) => o.id && o.label);
+          const humanPiece: HumanInputPiece = {
+            id: createId(),
+            type: "interrupt",
+            resumeToken: String(hi.resumeToken ?? ""),
+            requestId: String(hi.requestId ?? ""),
+            kind,
+            ...(question !== undefined ? { question } : {}),
+            multiple: Boolean(input.multiple),
+            options: optionsArr,
+          };
+          accPieces.push(humanPiece);
+          setStreamContentPieces(previewPieces());
+          // Auto-open debug panel to show request line and chunks
+          try {
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new Event("chat:open-debug"));
+            }
+          } catch {}
+        } else if (chunk.type === "message") {
+          if (!sawDeltaRef.current) {
+            const content = chunk.content ?? "";
+            accPieces.push({ id: createId(), type: "text", content });
+            setStreamContentPieces(previewPieces());
+          }
+        } else if (chunk.type === "error") {
+          // Add error message as error piece
+          accPieces.push({
+            id: createId(),
+            type: "error",
+            content: chunk.message ?? "An error occurred",
+          });
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "done") {
+          break;
+        }
+      }
+
+      // Flush any remaining live buffers into finalized pieces
+      for (const key of liveOrder) {
+        const buf = liveBuffers[key];
+        if (buf)
+          accPieces.push({ id: livePieceIds[key], type: "text", content: buf });
+      }
+
+      const aId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      // Extract plain text content for the content field
+      const plainTextContent = accPieces
+        .filter(
+          (p): p is Extract<ContentPiece, { type: "text" }> =>
+            p.type === "text",
+        )
+        .map((p) => p.content)
+        .join("");
+      const assistantBase = {
+        id: aId,
+        role: "assistant" as const,
+        content: plainTextContent,
+        debug: accDebug,
+      };
+      const assistantMsg: ChatMsg =
+        accPieces.length > 0
+          ? { ...assistantBase, contentPieces: accPieces }
+          : assistantBase;
+      setMessages((prev) => [...prev, assistantMsg]);
+      setLastAssistantId(aId);
+      setStreamContentPieces([]);
+      setStreamDebug([]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  const respondToHumanInput = async ({
+    resumeToken,
+    requestId,
+    selected,
+    text,
+  }: {
+    resumeToken: string;
+    requestId: string;
+    selected: string[];
+    text?: string;
+  }) => {
+    if (isStreaming) return;
+    const label: string =
+      typeof text === "string" && text.length > 0
+        ? text
+        : selected.length > 0
+          ? selected.length === 1
+            ? (selected[0] as string)
+            : selected.join(", ")
+          : "(selection)";
+    const userId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const userMsg: ChatMsg = { id: userId, role: "user", content: label };
+    setMessages((prev) => [...prev, userMsg]);
+    setIsStreaming(true);
+    setStreamContentPieces([]);
+    setStreamDebug([]);
+    sawDeltaRef.current = false;
+
+    try {
+      const resumePayload: Record<string, unknown> = {
+        resume: { token: resumeToken, requestId, selected },
+      };
+      const outgoing = {
+        role: "user" as const,
+        content: label,
+        metadata: resumePayload,
+      };
+      const messagesToSend = includeHistory
+        ? [...messages, outgoing]
+        : [outgoing];
+      const payload = { messages: messagesToSend };
+      const url = buildApiUrl(
+        apiConfig.endpoints.chat,
+        sessionId ? { stream: "true", sessionId } : { stream: "true" },
+      );
+      // Auto-open debug panel when sending resume
+      try {
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("chat:open-debug"));
+        }
+      } catch {}
+      const preDebug: StreamChunk = {
+        type: "status",
+        message: `POST ${url} (resume)`,
+      } as StreamChunk;
+      setStreamDebug((d) => [...d, preDebug]);
+      const resp = await fetch(url, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!resp.ok) {
+        setStreamDebug((d) => [
+          ...d,
+          { type: "error", message: `HTTP ${resp.status}` } as StreamChunk,
+        ]);
+        return;
+      }
+      // Reuse the same stream-reading logic
+      const accPieces: ContentPiece[] = [];
+      const liveBuffers: Record<string, string> = {};
+      const liveOrder: string[] = [];
+      const livePieceIds: Record<string, string> = {};
+      const accDebug: StreamChunk[] = [preDebug];
+      let lastTs = 0;
+      const ensureLiveNode = (node?: string) => {
+        const key = node ?? "__unknown__";
+        if (!(key in liveBuffers)) {
+          liveBuffers[key] = "";
+          liveOrder.push(key);
+          livePieceIds[key] = createId();
+        }
+        return key;
+      };
+      const previewPieces = () => [
+        ...accPieces,
+        ...liveOrder.map((n) => ({
+          id: livePieceIds[n],
+          type: "text",
+          content: liveBuffers[n],
+        })),
+      ];
+      const body = resp.body;
+      if (!body) {
+        setStreamDebug((d) => [
+          ...d,
+          { type: "error", message: `No response body` } as StreamChunk,
+        ]);
+        return;
+      }
+      type DebugChunk = StreamChunk & { _ts: number; _dt: number };
+      for await (const chunk of readStream(body)) {
+        const ts = Date.now();
+        const withMeta: DebugChunk = {
+          ...(chunk as StreamChunk),
+          _ts: ts,
+          _dt: lastTs ? ts - lastTs : 0,
+        };
+        lastTs = ts;
+        accDebug.push(withMeta);
+        setStreamDebug((d) =>
+          d.length > 1000 ? [...d.slice(-1000), withMeta] : [...d, withMeta],
+        );
+        if (chunk.type === "session") {
+          const sid = (chunk as { type: "session"; sessionId: string })
+            .sessionId;
+          setSessionId(sid);
+          try {
+            if (typeof localStorage !== "undefined")
+              localStorage.setItem("chat.sessionId", sid);
+          } catch {}
+          continue;
+        }
+        if (chunk.type === "text-start") {
+          const chunkNode = chunk.node;
+          ensureLiveNode(chunkNode);
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "text-delta") {
+          sawDeltaRef.current = true;
+          const deltaStr = chunk.delta as string;
+          const key = ensureLiveNode(chunk.node);
+          liveBuffers[key] = (liveBuffers[key] || "") + deltaStr;
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "text-end") {
+          const key = ensureLiveNode(chunk.node);
+          const buf = liveBuffers[key];
+          if (buf)
+            accPieces.push({
+              id: livePieceIds[key],
+              type: "text",
+              content: buf,
+            });
+          delete liveBuffers[key];
+          delete livePieceIds[key];
+          const idx = liveOrder.indexOf(key);
+          if (idx >= 0) liveOrder.splice(idx, 1);
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "structured-data") {
+          const structuredChunk: StructuredData = {
+            type: "structured-data",
+            ...(chunk.node !== undefined && { node: chunk.node }),
+            ...(chunk.dataType !== undefined && { dataType: chunk.dataType }),
+            data: chunk.data as unknown as Record<string, unknown>,
+          };
+          accPieces.push({
+            id: createId(),
+            type: "structured",
+            data: structuredChunk,
+          });
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "interrupt") {
+          interface HumanInputStreamChunk {
+            type: "interrupt";
+            requestId: string | undefined;
+            resumeToken: string | undefined;
+            input?: {
+              kind?: "text" | "choice" | "multi-choice";
+              question?: string;
+              multiple?: boolean;
+              options?: Array<{
+                id?: string | number;
+                label?: string;
+                description?: string;
+              }>;
+            };
+          }
+          const hi = chunk as unknown as HumanInputStreamChunk;
+          const input = hi.input ?? {};
+          const kind =
+            input.kind || (input.multiple ? "multi-choice" : "choice");
+          const isText = kind === "text";
+
+          const question = isText
+            ? input.question // Optional for text
+            : typeof input.question === "string"
+              ? input.question
+              : "Please choose"; // Required for choice
+
+          const optionsSrc = Array.isArray(input.options) ? input.options : [];
+          const optionsArr: Array<{
+            id: string;
+            label: string;
+            description?: string;
+          }> = optionsSrc
+            .map((o) => ({
+              id: String(o.id ?? ""),
+              label: String(o.label ?? ""),
+              ...(typeof o.description === "string" && o.description
+                ? { description: o.description }
+                : {}),
+            }))
+            .filter((o) => o.id && o.label);
+          const humanPiece: HumanInputPiece = {
+            id: createId(),
+            type: "interrupt",
+            resumeToken: String(hi.resumeToken ?? ""),
+            requestId: String(hi.requestId ?? ""),
+            kind,
+            ...(question !== undefined ? { question } : {}),
+            multiple: Boolean(input.multiple),
+            options: optionsArr,
+          };
+          accPieces.push(humanPiece);
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "message") {
+          if (!sawDeltaRef.current) {
+            const content = chunk.content ?? "";
+            accPieces.push({ id: createId(), type: "text", content });
+            setStreamContentPieces(previewPieces());
+          }
+        } else if (chunk.type === "error") {
+          accPieces.push({
+            id: createId(),
+            type: "error",
+            content: chunk.message ?? "An error occurred",
+          });
+          setStreamContentPieces(previewPieces());
+        } else if (chunk.type === "done") {
+          break;
+        }
+      }
+      for (const key of liveOrder) {
+        const buf = liveBuffers[key];
+        if (buf)
+          accPieces.push({ id: livePieceIds[key], type: "text", content: buf });
+      }
+      const aId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const plainTextContent = accPieces
+        .filter(
+          (p): p is Extract<ContentPiece, { type: "text" }> =>
+            p.type === "text",
+        )
+        .map((p) => p.content)
+        .join("");
+      const assistantMsg: ChatMsg =
+        accPieces.length > 0
+          ? {
+              id: aId,
+              role: "assistant",
+              content: plainTextContent,
+              contentPieces: accPieces,
+              debug: accDebug,
+            }
+          : {
+              id: aId,
+              role: "assistant",
+              content: plainTextContent,
+              debug: accDebug,
+            };
+      setMessages((prev) => [...prev, assistantMsg]);
+      setLastAssistantId(aId);
+      setStreamContentPieces([]);
+      setStreamDebug([]);
+    } finally {
+      setIsStreaming(false);
+    }
+  };
+
+  const value: ChatContextValue = {
+    messages,
+    isStreaming,
+    streamContentPieces,
+    streamDebug,
+    lastAssistantId,
+    send,
+    respondToHumanInput,
+    setMessages,
+    includeHistory,
+    setIncludeHistory,
+  };
+
+  return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;
+}

@@ -1,6 +1,6 @@
+import { resolve } from "node:path";
 import type { KortyxConfig, WorkflowRegistry } from "@kortyx/runtime";
 import { createFileWorkflowRegistry, loadKortyxConfig } from "@kortyx/runtime";
-import { resolve } from "path";
 import type { SelectWorkflowFn } from "../orchestrator";
 import type { ChatMessage } from "../types/chat-message";
 import type { ProcessChatArgs } from "./process-chat";

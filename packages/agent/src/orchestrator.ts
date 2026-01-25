@@ -1,3 +1,4 @@
+import { PassThrough } from "node:stream";
 import type { GraphState, WorkflowDefinition, WorkflowId } from "@kortyx/core";
 import {
   type PendingRequestRecord,
@@ -11,7 +12,6 @@ import {
 } from "@kortyx/runtime";
 import type { StreamChunk } from "@kortyx/stream";
 import { Command } from "@langchain/langgraph";
-import { PassThrough } from "stream";
 import { transformGraphStreamForUI } from "./stream/transform-graph-stream-for-ui";
 
 export type SelectWorkflowFn = (
