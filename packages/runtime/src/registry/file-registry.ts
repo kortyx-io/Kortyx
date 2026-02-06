@@ -60,7 +60,7 @@ export function createFileWorkflowRegistry(
       try {
         const modulePath = join(workflowsDir, file);
 
-        // Declarative JSON/YAML workflows
+        // For declarative JSON/YAML workflows
         if (isDeclarativeWorkflowFile(file)) {
           const raw = await readFile(modulePath, "utf8");
           const workflow = loadWorkflow(raw) as unknown as AnyWorkflow;
@@ -72,7 +72,7 @@ export function createFileWorkflowRegistry(
           continue;
         }
 
-        // TS/JS module workflows
+        // For TS/JS module workflows
         const module = await import(modulePath);
         const workflowExport = Object.values(module).find(
           (exp): exp is AnyWorkflow => {
