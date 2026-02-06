@@ -60,16 +60,22 @@ export async function processChat<
   // Load runtime configuration (API keys, environment, etc.)
   const config = await loadRuntimeConfig(options);
   if (initializeProviders) {
-    initializeProviders((config as any)?.ai);
+    type AiConfig = Parameters<NonNullable<typeof initializeProviders>>[0];
+    const ai = config.ai;
+    initializeProviders(
+      (ai && typeof ai === "object" && !Array.isArray(ai)
+        ? ai
+        : {}) as AiConfig,
+    );
   }
-  const runtimeConfig = {
+  const runtimeConfig: Parameters<typeof createLangGraph>[1] = {
     ...config,
     getProvider,
     ...(memoryAdapter ? { memoryAdapter } : {}),
     ...(frameworkAdapter
       ? { checkpointer: frameworkAdapter.checkpointer }
       : {}),
-  } as Record<string, unknown>;
+  };
 
   const workflowSelector: SelectWorkflowFn | null =
     selectWorkflow ??
@@ -100,13 +106,20 @@ export async function processChat<
   // This is intentionally option-based (so adapters like Next.js can pass it),
   // and it is ignored for resume requests (resume must follow the pending workflow).
   const isResumeRequest = Boolean(parseResumeMeta(last));
-  const requestedWorkflowId =
-    (options as any)?.workflowId ?? (options as any)?.workflow;
-  if (!isResumeRequest && typeof requestedWorkflowId === "string") {
+  const requestedWorkflowId = (() => {
+    if (!options) return undefined;
+    if (typeof options !== "object") return undefined;
+    const record = options as Record<string, unknown>;
+    const wfId = record.workflowId;
+    if (typeof wfId === "string") return wfId;
+    const wf = record.workflow;
+    if (typeof wf === "string") return wf;
+    return undefined;
+  })();
+  if (!isResumeRequest && requestedWorkflowId) {
     // Treat empty string as "use default workflow" and clear stored selection.
-    if (requestedWorkflowId.trim() === "")
-      delete (memory as any).currentWorkflow;
-    else memory.currentWorkflow = requestedWorkflowId as any;
+    if (requestedWorkflowId.trim() === "") delete memory.currentWorkflow;
+    else memory.currentWorkflow = requestedWorkflowId;
   }
 
   // Base state (LLM input, messages, memory)
@@ -135,7 +148,7 @@ export async function processChat<
   const currentWorkflow = baseState.currentWorkflow;
   const selectedWorkflow = await workflowSelector(currentWorkflow as string);
 
-  const graph = await createLangGraph(selectedWorkflow, runtimeConfig as any);
+  const graph = await createLangGraph(selectedWorkflow, runtimeConfig);
 
   const orchestratedStream = await orchestrateGraphStream({
     sessionId: resolvedSessionId,

@@ -7,7 +7,7 @@ import type {
 import { createLangGraph } from "@kortyx/runtime";
 import type { StreamChunk } from "@kortyx/stream";
 import type { SelectWorkflowFn } from "../orchestrator";
-import { orchestrateGraphStream } from "../orchestrator";
+import { type OrchestrateArgs, orchestrateGraphStream } from "../orchestrator";
 import type { ChatMessage } from "../types/chat-message";
 
 export interface ResumeMeta {
@@ -22,24 +22,31 @@ export type ApplyResumeSelection = (args: {
   selected: string[];
 }) => Record<string, unknown> | null | undefined;
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  Boolean(value) && typeof value === "object" && !Array.isArray(value);
+
 export function parseResumeMeta(
   msg: ChatMessage | undefined,
 ): ResumeMeta | null {
   if (!msg || !msg.metadata) return null;
-  const raw = (msg.metadata as any)?.resume;
-  if (!raw) return null;
+  const raw = msg.metadata.resume;
+  if (!isRecord(raw)) return null;
+
   const token = typeof raw.token === "string" ? raw.token : "";
   const requestId = typeof raw.requestId === "string" ? raw.requestId : "";
-  const cancel = Boolean(raw.cancel);
+  const cancel = raw.cancel === true;
 
   // Accept multiple shapes; normalize to selected: string[]
   let selected: string[] = [];
-  if (typeof raw.selected === "string") selected = [raw.selected];
-  else if (Array.isArray(raw.selected))
-    selected = raw.selected.map((x: any) => String(x));
-  else if (raw?.choice?.id) selected = [String(raw.choice.id)];
-  else if (Array.isArray(raw?.choices))
-    selected = raw.choices.map((c: any) => String(c.id));
+  const rawSelected = raw.selected;
+  if (typeof rawSelected === "string") selected = [rawSelected];
+  else if (Array.isArray(rawSelected)) selected = rawSelected.map(String);
+  else if (isRecord(raw.choice) && typeof raw.choice.id === "string")
+    selected = [raw.choice.id];
+  else if (Array.isArray(raw.choices))
+    selected = raw.choices
+      .map((c) => (isRecord(c) ? c.id : undefined))
+      .filter((id): id is string => typeof id === "string");
 
   if (!token || !requestId) return null;
   return { token, requestId, selected, cancel };
@@ -100,26 +107,31 @@ export async function tryPrepareResumeStream({
       ? { coordinates: String(meta.selected[0]) }
       : {};
 
-  const resumeDataPatch =
-    resumeData && typeof resumeData === "object" ? resumeData : {};
+  const resumeDataPatch = isRecord(resumeData) ? resumeData : {};
 
-  const resumedState: GraphState = {
+  const pendingData = isRecord(pending.state?.data) ? pending.state?.data : {};
+  const workflowId =
+    typeof pending.workflow === "string" && pending.workflow.trim()
+      ? pending.workflow
+      : typeof defaultWorkflowId === "string" && defaultWorkflowId.trim()
+        ? defaultWorkflowId
+        : "job-search";
+
+  const resumedState = {
     // For static breakpoints, resume with null input (set in orchestrator),
     // and stash the user selection into data so the next node can read it.
-    input: "" as any,
-    lastNode: "__start__" as any,
-    currentWorkflow:
-      (pending.workflow as any) ||
-      (defaultWorkflowId as any) ||
-      ("job-search" as any),
-    config: config as any,
+    input: "",
+    lastNode: "__start__",
+    currentWorkflow: workflowId,
+    config,
+    memory: {},
     conversationHistory: [],
     awaitingHumanInput: false,
     data: {
-      ...(pending.state?.data ?? {}),
+      ...pendingData,
       ...resumeDataPatch,
-    } as any,
-  } as any;
+    },
+  } satisfies GraphState;
 
   const wf = await selectWorkflow(resumedState.currentWorkflow as string);
   const resumeValue =
@@ -129,26 +141,26 @@ export async function tryPrepareResumeStream({
         ? String(meta.selected[0])
         : undefined;
   const resumedGraph = await createLangGraph(wf, {
-    ...(config as any),
+    ...config,
     resume: true,
     ...(resumeValue !== undefined ? { resumeValue } : {}),
   });
   await store.delete(pending.token);
 
-  const args: any = {
+  const args = {
     sessionId,
     runId: pending.runId,
     graph: resumedGraph,
     state: resumedState,
     config: {
-      ...(config as any),
+      ...config,
       resume: true,
       ...(resumeValue !== undefined ? { resumeValue } : {}),
     },
     selectWorkflow,
-    frameworkAdapter,
-  };
+    ...(frameworkAdapter ? { frameworkAdapter } : {}),
+  } satisfies OrchestrateArgs;
 
   const stream = await orchestrateGraphStream(args);
-  return stream as AsyncIterable<StreamChunk>;
+  return stream as unknown as AsyncIterable<StreamChunk>;
 }
