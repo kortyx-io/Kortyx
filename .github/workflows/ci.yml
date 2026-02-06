@@ -13,11 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          submodules: recursive
+          # NOTE: Do not checkout submodules here. This repo includes a private Studio submodule
+          # that isn't available in OSS CI contexts.
+          submodules: false
 
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
+        # Use the pnpm version pinned in root package.json#packageManager
 
       - uses: actions/setup-node@v4
         with:
@@ -28,8 +29,11 @@ jobs:
       - name: Install
         run: pnpm install --frozen-lockfile
 
+      - name: Build
+        run: pnpm -r --filter "@kortyx/*" --filter "!@kortyx/example-nextjs-chat" --filter kortyx --if-present run build
+
       - name: Typecheck
-        run: pnpm -r run type-check --if-present
+        run: pnpm -r --if-present run type-check
 
       - name: Lint
         run: pnpm lint

@@ -16,9 +16,11 @@ export function ChatWindow() {
     streamDebug,
     lastAssistantId,
     send,
-    setMessages,
+    clearChat,
     includeHistory,
     setIncludeHistory,
+    workflowId,
+    setWorkflowId,
   } = useChat();
   const [input, setInput] = useState("");
   const [debugOpen, setDebugOpen] = useState(false);
@@ -90,9 +92,7 @@ export function ChatWindow() {
             </div>
             <div className="flex items-center gap-3">
               <div className="hidden text-xs italic text-slate-500 sm:block">
-                KORTYX API:{" "}
-                {process.env.NEXT_PUBLIC_KORTYX_API_URL ??
-                  process.env.NEXT_PUBLIC_API_URL}
+                KORTYX: server actions
               </div>
               <Button
                 variant="outline"
@@ -119,7 +119,7 @@ export function ChatWindow() {
                 variant="outline"
                 size="sm"
                 onClick={() => {
-                  setMessages([]);
+                  clearChat();
                 }}
                 title="Clear chat"
               >
@@ -189,6 +189,8 @@ export function ChatWindow() {
         onOpenChange={setParametersOpen}
         includeHistory={includeHistory}
         onIncludeHistoryChange={setIncludeHistory}
+        workflowId={workflowId}
+        onWorkflowIdChange={setWorkflowId}
       />
     </SidebarProvider>
   );
