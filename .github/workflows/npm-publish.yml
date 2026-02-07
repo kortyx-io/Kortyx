@@ -27,7 +27,6 @@ jobs:
         with:
           node-version-file: .nvmrc
           cache: pnpm
-          registry-url: https://registry.npmjs.org
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -43,6 +42,9 @@ jobs:
 
       - name: Publish packages
         run: |
+          unset NODE_AUTH_TOKEN
+          npm config delete //registry.npmjs.org/:_authToken || true
+          npm config delete always-auth || true
           node -e "
           const { execSync } = require('node:child_process');
           const { readdirSync, readFileSync } = require('node:fs');
