@@ -43,8 +43,8 @@ export function DocsSidebar(props: DocsSidebarProps) {
                   className={cn(
                     "text-sm font-semibold",
                     section.slug === currentSectionSlug
-                      ? "text-zinc-900"
-                      : "text-blue-700 hover:text-blue-800",
+                      ? "text-foreground"
+                      : "text-primary hover:text-primary/80",
                   )}
                 >
                   {section.label}
@@ -60,8 +60,8 @@ export function DocsSidebar(props: DocsSidebarProps) {
                         className={cn(
                           "block rounded px-2 py-1 text-sm",
                           isActive
-                            ? "bg-zinc-900 text-white"
-                            : "text-zinc-700 hover:bg-zinc-100",
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground hover:bg-accent",
                         )}
                       >
                         {item.title}

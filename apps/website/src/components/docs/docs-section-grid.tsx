@@ -17,20 +17,20 @@ export function DocsSectionGrid(props: DocsSectionGridProps) {
 
   return (
     <section className="max-w-5xl pb-20">
-      <h1 className="text-4xl font-bold tracking-tight text-zinc-900">
+      <h1 className="text-4xl font-bold tracking-tight text-foreground">
         {title}
       </h1>
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         {items.map((item) => (
           <Link key={item.href} href={item.href}>
-            <Card className="h-full cursor-pointer border-zinc-200 transition-colors hover:border-zinc-300 hover:bg-zinc-50">
+            <Card className="h-full cursor-pointer transition-colors hover:bg-accent">
               <CardHeader>
-                <CardTitle className="text-4xl font-semibold tracking-tight text-zinc-900">
+                <CardTitle className="text-4xl font-semibold tracking-tight text-foreground">
                   {item.title}
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-2xl leading-9 text-zinc-700">
+                <p className="text-2xl leading-9 text-foreground">
                   {item.description}
                 </p>
               </CardContent>

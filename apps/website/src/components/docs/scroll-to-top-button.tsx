@@ -43,7 +43,7 @@ export function ScrollToTopButton(props: ScrollToTopButtonProps) {
         type="button"
         aria-label="Scroll to top"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-600 transition-colors hover:text-blue-600"
+        className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-primary"
       >
         Scroll to top
         <span className="flex shrink-0">
@@ -89,7 +89,7 @@ export function ScrollToTopButton(props: ScrollToTopButtonProps) {
         type="button"
         aria-label="Scroll to top"
         onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        className="inline-flex cursor-pointer items-center gap-2 text-sm text-zinc-600 hover:text-blue-700"
+        className="inline-flex cursor-pointer items-center gap-2 text-sm text-muted-foreground hover:text-primary"
       >
         Scroll to top
       </button>
@@ -101,7 +101,7 @@ export function ScrollToTopButton(props: ScrollToTopButtonProps) {
       type="button"
       aria-label="Scroll to top"
       onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-      className={`fixed right-6 bottom-6 z-50 cursor-pointer rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 shadow-lg transition-all hover:bg-zinc-100 ${
+      className={`fixed right-6 bottom-6 z-50 cursor-pointer rounded-full border bg-background px-4 py-2 text-sm font-medium text-foreground shadow-lg transition-all hover:bg-accent ${
         isVisible
           ? "pointer-events-auto translate-y-0 opacity-100"
           : "pointer-events-none translate-y-2 opacity-0"

@@ -47,7 +47,7 @@ export function DocsOnThisPage(props: DocsOnThisPageProps) {
   }, [itemIds]);
 
   if (items.length === 0) {
-    return <p className="text-sm text-zinc-500">No headings</p>;
+    return <p className="text-sm text-muted-foreground">No headings</p>;
   }
 
   return (
@@ -60,8 +60,8 @@ export function DocsOnThisPage(props: DocsOnThisPageProps) {
               "block text-sm transition-colors",
               item.level === 3 ? "pl-4" : "",
               activeId === item.id
-                ? "font-medium text-blue-700"
-                : "text-zinc-600 hover:text-blue-700 pr-1",
+                ? "font-medium text-primary"
+                : "text-muted-foreground hover:text-primary pr-1",
             )}
           >
             {item.text}

@@ -69,7 +69,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
             return (
               <Link
                 href={rewritten}
-                className="font-medium text-blue-700 underline underline-offset-2"
+                className="font-medium text-primary underline underline-offset-2"
               >
                 {props.children}
               </Link>
@@ -80,7 +80,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
             <a
               {...props}
               href={rewritten}
-              className="font-medium text-blue-700 underline underline-offset-2"
+              className="font-medium text-primary underline underline-offset-2"
             />
           );
         },
@@ -97,7 +97,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
             <h2
               {...props}
               id={id}
-              className="group mt-12 flex scroll-mt-6 items-center gap-2 border-t border-zinc-200 pt-8 text-2xl font-semibold tracking-tight"
+              className="group mt-12 flex scroll-mt-6 items-center gap-2 border-t border-border pt-8 text-2xl font-semibold tracking-tight"
             >
               <span>{props.children}</span>
               <DocsHeadingAnchorButton headingId={id} />
@@ -121,7 +121,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
         p: (props: ComponentPropsWithoutRef<"p">) => (
           <p
             {...props}
-            className="mb-0 text-md leading-8 text-zinc-800 not-first:mt-5"
+            className="mb-0 text-md leading-8 text-foreground not-first:mt-5"
           />
         ),
         ul: (props: ComponentPropsWithoutRef<"ul">) => (
@@ -143,7 +143,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
               <code
                 {...props}
                 className={cn(
-                  "rounded bg-zinc-100 px-1.5 py-0.5 text-[0.9em]",
+                  "rounded bg-muted px-1.5 py-0.5 text-[0.9em]",
                   className,
                 )}
               >
@@ -180,7 +180,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
         },
         pre: ({ children }: ComponentPropsWithoutRef<"pre">) => <>{children}</>,
         table: ({ children }: ComponentPropsWithoutRef<"table">) => (
-          <div className="my-8 overflow-x-auto rounded-xl border border-zinc-200">
+          <div className="my-8 overflow-x-auto rounded-xl border border-border">
             <Table>{children}</Table>
           </div>
         ),
@@ -194,19 +194,19 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
           <TableRow>{children}</TableRow>
         ),
         th: ({ children }: ComponentPropsWithoutRef<"th">) => (
-          <TableHead className="text-sm font-semibold text-zinc-900">
+          <TableHead className="text-sm font-semibold text-foreground">
             {children}
           </TableHead>
         ),
         td: ({ children }: ComponentPropsWithoutRef<"td">) => (
-          <TableCell className="align-top text-sm text-zinc-700">
+          <TableCell className="align-top text-sm text-foreground">
             {children}
           </TableCell>
         ),
         blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => (
           <blockquote
             {...props}
-            className="border-l-4 border-zinc-300 pl-4 italic text-zinc-700"
+            className="border-l-4 border-border pl-4 italic text-foreground"
           />
         ),
       }}

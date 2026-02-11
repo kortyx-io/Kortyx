@@ -34,7 +34,7 @@ export function DocsHeadingAnchorButton(props: DocsHeadingAnchorButtonProps) {
       onClick={onClick}
       aria-label="Copy heading link"
       className={cn(
-        "inline-flex cursor-pointer items-center rounded-md p-1 text-zinc-400 opacity-0 transition hover:bg-zinc-100 hover:text-zinc-700 group-hover:opacity-100",
+        "inline-flex cursor-pointer items-center rounded-md p-1 text-muted-foreground opacity-0 transition hover:bg-accent hover:text-foreground group-hover:opacity-100",
         className,
       )}
     >

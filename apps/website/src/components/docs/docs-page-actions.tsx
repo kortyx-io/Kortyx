@@ -53,12 +53,14 @@ function ActionItem(props: ActionItemProps) {
           rel="noreferrer"
           className="flex cursor-pointer items-start gap-3 rounded-md px-3 py-2"
         >
-          <span className="mt-1 text-zinc-500">{icon}</span>
+          <span className="mt-1 text-muted-foreground">{icon}</span>
           <span className="space-y-1">
-            <span className="block text-sm font-medium text-zinc-900">
+            <span className="block text-sm font-medium text-foreground">
               {title}
             </span>
-            <span className="block text-xs text-zinc-500">{description}</span>
+            <span className="block text-xs text-muted-foreground">
+              {description}
+            </span>
           </span>
         </a>
       ) : (
@@ -67,12 +69,14 @@ function ActionItem(props: ActionItemProps) {
           onClick={onClick}
           className="flex w-full cursor-pointer items-start gap-3 rounded-md px-3 py-2 text-left"
         >
-          <span className="mt-1 text-zinc-500">{icon}</span>
+          <span className="mt-1 text-muted-foreground">{icon}</span>
           <span className="space-y-1">
-            <span className="block text-sm font-medium text-zinc-900">
+            <span className="block text-sm font-medium text-foreground">
               {title}
             </span>
-            <span className="block text-xs text-zinc-500">{description}</span>
+            <span className="block text-xs text-muted-foreground">
+              {description}
+            </span>
           </span>
         </button>
       )}
@@ -125,13 +129,13 @@ export function DocsPageActions(props: DocsPageActionsProps) {
         : "Copy page";
 
   return (
-    <div className="inline-flex items-stretch overflow-hidden rounded-md border border-zinc-300 bg-white">
+    <div className="inline-flex items-stretch overflow-hidden rounded-md border border-border bg-background">
       <Button
         type="button"
         variant="ghost"
         onClick={copyPageMarkdown}
         className={cn(
-          "rounded-none border-0 px-4 text-sm font-semibold text-zinc-900 hover:bg-zinc-100",
+          "rounded-none border-0 px-4 text-sm font-semibold text-foreground hover:bg-accent",
           copyState === "error" ? "text-red-600" : "",
         )}
       >
@@ -142,7 +146,7 @@ export function DocsPageActions(props: DocsPageActionsProps) {
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
-            className="rounded-none border-0 border-l border-zinc-300 px-3 text-zinc-700 hover:bg-zinc-100"
+            className="rounded-none border-0 border-l border-border px-3 text-foreground hover:bg-accent"
           >
             <ChevronDownIcon className="h-4 w-4" />
           </Button>

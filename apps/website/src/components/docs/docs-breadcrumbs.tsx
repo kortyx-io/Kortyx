@@ -15,20 +15,25 @@ export function DocsBreadcrumbs(props: DocsBreadcrumbsProps) {
 
   return (
     <nav
-      className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-zinc-500"
+      className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground"
       aria-label="Breadcrumb"
     >
       {items.map((crumb, index) => {
         const isLast = index === items.length - 1;
         return (
           <React.Fragment key={`${crumb.href}-${crumb.label}`}>
-            {index > 0 ? <span className="text-zinc-300">/</span> : null}
+            {index > 0 ? (
+              <span className="text-muted-foreground">/</span>
+            ) : null}
             {isLast ? (
-              <span className="truncate font-medium text-zinc-700">
+              <span className="truncate font-medium text-foreground">
                 {crumb.label}
               </span>
             ) : (
-              <Link href={crumb.href} className="truncate hover:text-zinc-900">
+              <Link
+                href={crumb.href}
+                className="truncate hover:text-foreground"
+              >
                 {crumb.label}
               </Link>
             )}
