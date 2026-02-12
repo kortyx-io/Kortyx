@@ -1,0 +1,24 @@
+# Changelog
+
+## [0.2.0](https://github.com/kortyx-io/kortyx/compare/website-v0.1.0...website-v0.2.0) (2026-02-12)
+
+
+### Features
+
+* add new example project ([dae4ad0](https://github.com/kortyx-io/kortyx/commit/dae4ad00f2e987ecb71f863bfc776ea7e19e2430))
+* add website docs ([f197107](https://github.com/kortyx-io/kortyx/commit/f19710717bcd9e78c7382119ed8b3257e5097b7c))
+* add website docs ([46d0812](https://github.com/kortyx-io/kortyx/commit/46d08123ff3483d7f52f016be11686bb9cf4b621))
+
+
+### Bug Fixes
+
+* add scroll to toc ([342d517](https://github.com/kortyx-io/kortyx/commit/342d517c9191ff36ad432d45c1338d479f8bd524))
+* add theme dark and light ([7e64561](https://github.com/kortyx-io/kortyx/commit/7e645617e759b02b451df8e71adf2ee7f355fd11))
+* align linting method ([99fbbaa](https://github.com/kortyx-io/kortyx/commit/99fbbaa970b301bcb867cc60dac58e46a87f87ab))
+* clean default pages ([a99ca8a](https://github.com/kortyx-io/kortyx/commit/a99ca8a9e488efafe318eda03a3f3cf49bc3b1f7))
+* improve codeblock background ([76463fd](https://github.com/kortyx-io/kortyx/commit/76463fda7e50428e75af47cf41ab398f0800a76a))
+* improve focus issues ([b71adba](https://github.com/kortyx-io/kortyx/commit/b71adbaae5b68d6caaa51f46eeb15e8009a67d03))
+* improve mobile view ([a5c233a](https://github.com/kortyx-io/kortyx/commit/a5c233ab079c3bb23b239591e7f93ad60424dece))
+* improve navbar ([71945b2](https://github.com/kortyx-io/kortyx/commit/71945b2a3b9e05ec2bff095d83707e7ba710ee9d))
+* place folders under src ([ecfd365](https://github.com/kortyx-io/kortyx/commit/ecfd365723adf87e900681e94fbb38c0961ac9c1))
+* update env organization ([78fbaf1](https://github.com/kortyx-io/kortyx/commit/78fbaf16bda909e33cc1da14640fc69de117e29c))
