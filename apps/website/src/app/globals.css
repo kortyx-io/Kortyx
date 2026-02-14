@@ -154,17 +154,21 @@
 
 .docs-sidebar-scroll::-webkit-scrollbar {
   width: 10px;
+  background: transparent;
 }
 
 .docs-sidebar-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
 
+.docs-sidebar-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
 .docs-sidebar-scroll::-webkit-scrollbar-thumb {
   background-color: var(--docs-sidebar-scrollbar-thumb);
-  border: 2px solid transparent;
+  border: 0;
   border-radius: 9999px;
-  background-clip: padding-box;
 }
 
 .docs-sidebar-scroll:hover::-webkit-scrollbar-thumb,
