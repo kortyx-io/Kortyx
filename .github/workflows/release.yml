@@ -1,6 +1,9 @@
 name: Prepare Release PR (Repo)
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
