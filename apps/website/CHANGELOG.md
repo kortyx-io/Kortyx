@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.3.4](https://github.com/kortyx-io/kortyx/compare/website-v0.3.3...website-v0.3.4) (2026-02-15)
+
+
+### Bug Fixes
+
+* add metadataBase ([57384e6](https://github.com/kortyx-io/kortyx/commit/57384e69896a8d8823b246402ebc7a51d62233dd))
+* lighthouse results ([8a370a0](https://github.com/kortyx-io/kortyx/commit/8a370a09f04196a593e5c25e36229b75acf5baae))
+* toc view ([fea8986](https://github.com/kortyx-io/kortyx/commit/fea8986fba3d1d1e3d4f3e909f30f6f3d162d533))
+
 ## [0.3.3](https://github.com/kortyx-io/kortyx/compare/website-v0.3.2...website-v0.3.3) (2026-02-15)
 
 
