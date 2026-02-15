@@ -1,13 +1,8 @@
 import { resolve } from "node:path";
-import type {
-  FrameworkAdapter,
-  KortyxConfig,
-  WorkflowRegistry,
-} from "@kortyx/runtime";
+import type { FrameworkAdapter, WorkflowRegistry } from "@kortyx/runtime";
 import {
   createFileWorkflowRegistry,
   createFrameworkAdapterFromEnv,
-  loadKortyxConfig,
 } from "@kortyx/runtime";
 import type { SelectWorkflowFn } from "../orchestrator";
 import type { ChatMessage } from "../types/chat-message";
@@ -25,8 +20,6 @@ export interface CreateAgentArgs<
   workflowRegistry?: WorkflowRegistry;
   selectWorkflow?: SelectWorkflowFn;
   fallbackWorkflowId?: string;
-  config?: KortyxConfig;
-  configPath?: string;
 }
 
 export function createAgent<
@@ -38,15 +31,12 @@ export function createAgent<
     workflowRegistry,
     selectWorkflow,
     fallbackWorkflowId,
-    config,
-    configPath,
     defaultWorkflowId,
     frameworkAdapter,
     ...baseArgs
   } = args;
 
-  const resolvedDefaultWorkflowId =
-    defaultWorkflowId ?? config?.fallbackWorkflowId ?? fallbackWorkflowId;
+  const resolvedDefaultWorkflowId = defaultWorkflowId ?? fallbackWorkflowId;
   const resolvedFrameworkAdapter: FrameworkAdapter =
     frameworkAdapter ?? createFrameworkAdapterFromEnv();
 
@@ -60,25 +50,10 @@ export function createAgent<
       });
     }
 
-    const loadConfigArgs = {
-      cwd: resolvedCwd,
-      ...(configPath ? { configPath } : {}),
-    } as const;
-    const loadedConfig = config ?? (await loadKortyxConfig(loadConfigArgs));
-    const resolvedWorkflowsDir =
-      loadedConfig?.workflowsDir ?? resolve(resolvedCwd, "src", "workflows");
+    const resolvedWorkflowsDir = resolve(resolvedCwd, "src", "workflows");
     const registryOptions = {
       workflowsDir: resolvedWorkflowsDir,
-      fallbackId:
-        loadedConfig?.fallbackWorkflowId ??
-        fallbackWorkflowId ??
-        "general-chat",
-      ...(loadedConfig?.registry?.cache !== undefined
-        ? { cache: loadedConfig.registry.cache }
-        : {}),
-      ...(loadedConfig?.registry?.extensions
-        ? { extensions: loadedConfig.registry.extensions }
-        : {}),
+      fallbackId: fallbackWorkflowId ?? "general-chat",
     } as const;
     return createFileWorkflowRegistry(registryOptions);
   })();

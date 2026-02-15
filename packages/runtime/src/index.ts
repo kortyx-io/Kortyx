@@ -1,6 +1,5 @@
 // release-test: 2026-01-22
 export * from "./checkpointer";
-export * from "./config/load-kortyx-config";
 export * from "./framework/adapter";
 export * from "./framework/pending-requests";
 export * from "./graph/create-langgraph";

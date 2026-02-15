@@ -122,19 +122,7 @@ export async function runChat(args: {
 }
 ```
 
-## 5. Add `kortyx.config.mjs` (recommended)
-
-```js
-export default {
-  workflowsDir: "./src/workflows",
-  fallbackWorkflowId: "general-chat",
-  registry: {
-    cache: true,
-  },
-};
-```
-
-## 6. Run
+## 5. Run
 
 ```bash
 GOOGLE_API_KEY=your_key_here pnpm dev
@@ -150,4 +138,3 @@ Next:
 
 - [Hooks](../03-runtime/01-hooks.md)
 - [Interrupts and Resume](../03-runtime/02-interrupts-and-resume.md)
-

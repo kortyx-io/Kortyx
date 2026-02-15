@@ -37,5 +37,4 @@ pnpm dev
 ## Configuration
 
 - `GOOGLE_API_KEY` (or `GEMINI_API_KEY`): used by `@kortyx/providers` to initialize the Google provider.
-- `kortyx.config.mjs` lives at the project root and points to `./src/workflows`.
 - Workflows in this example are TypeScript (`defineWorkflow(...)`) under `src/workflows`.

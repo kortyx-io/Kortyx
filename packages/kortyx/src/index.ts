@@ -30,7 +30,7 @@ export {
   createRedisAdapter,
 } from "@kortyx/memory";
 export * from "@kortyx/providers";
-export type { KortyxConfig, WorkflowRegistry } from "@kortyx/runtime";
+export type { WorkflowRegistry } from "@kortyx/runtime";
 export {
   clearRegisteredNodes,
   createFileWorkflowRegistry,
@@ -40,7 +40,6 @@ export {
   createRedisFrameworkAdapter,
   getRegisteredNode,
   listRegisteredNodes,
-  loadKortyxConfig,
   registerNode,
 } from "@kortyx/runtime";
 export type { StreamChunk } from "@kortyx/stream";
