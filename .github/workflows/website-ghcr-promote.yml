@@ -2,11 +2,6 @@ name: Promote Website Image (GHCR)
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Website version to promote (e.g. 0.3.1)"
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -31,16 +26,14 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Promote staging tag to production tags
+      - name: Promote staging-latest to latest
         run: |
-          version="${{ inputs.version }}"
-          source_image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-v${version}"
+          source_image="${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:staging-latest"
 
           docker buildx imagetools inspect "${source_image}"
 
           docker buildx imagetools create \
-            -t "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${version}" \
             -t "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest" \
             "${source_image}"
 
-          docker buildx imagetools inspect "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:v${version}"
+          docker buildx imagetools inspect "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
