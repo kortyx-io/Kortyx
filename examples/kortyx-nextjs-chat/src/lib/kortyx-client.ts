@@ -1,5 +1,3 @@
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import {
   createAgent,
   createInMemoryAdapter,
@@ -10,29 +8,16 @@ import {
 import { generalChatWorkflow } from "@/workflows/general-chat.workflow";
 import { interruptDemoWorkflow } from "@/workflows/interrupt-demo.workflow";
 import { threeStepsWorkflow } from "@/workflows/three-steps.workflow";
-import rawKortyxConfig from "../../kortyx.config.mjs";
 
 type RuntimeOptions = {
   sessionId: string;
   workflowId?: string;
 };
 
-const projectRoot = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "..",
-);
-
-const kortyxConfig = {
-  ...rawKortyxConfig,
-  workflowsDir: resolve(projectRoot, "./src/workflows"),
-  fallbackWorkflowId: "general-chat",
-};
-
 const workflowRegistry = createInMemoryWorkflowRegistry(
   [generalChatWorkflow, threeStepsWorkflow, interruptDemoWorkflow],
   {
-    fallbackId: kortyxConfig.fallbackWorkflowId ?? "general-chat",
+    fallbackId: "general-chat",
   },
 );
 
@@ -58,7 +43,6 @@ const memoryAdapter = createInMemoryAdapter({
 });
 
 export const agent = createAgent({
-  config: kortyxConfig,
   workflowRegistry,
   loadRuntimeConfig,
   getProvider,

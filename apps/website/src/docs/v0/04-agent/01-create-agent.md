@@ -43,8 +43,7 @@ export const agent = createAgent({
 1. `selectWorkflow` function
 2. `workflowRegistry`
 3. `workflowsDir`
-4. `kortyx.config.mjs` (loaded via `loadKortyxConfig`)
-5. fallback default: `./src/workflows`
+4. fallback default: `./src/workflows`
 
 ## Config knobs
 
@@ -52,7 +51,6 @@ Useful fields in `CreateAgentArgs`:
 
 - `defaultWorkflowId`
 - `fallbackWorkflowId`
-- `config` / `configPath`
 - `frameworkAdapter`
 - `memoryAdapter`
 - `selectWorkflow` or `workflowRegistry`
@@ -62,4 +60,3 @@ Result object:
 ```ts
 const response = await agent.processChat(messages, options);
 ```
-

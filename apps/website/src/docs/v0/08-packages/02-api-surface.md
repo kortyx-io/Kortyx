@@ -72,7 +72,6 @@ export {
   createRedisFrameworkAdapter,
   getRegisteredNode,
   listRegisteredNodes,
-  loadKortyxConfig,
   registerNode,
 } from "@kortyx/runtime";
 ```
@@ -92,4 +91,3 @@ export type { StreamChunk } from "@kortyx/stream";
 - `StreamChunk` type
 
 Use this entry for client-only bundles where you want to avoid Node-only runtime exports.
-

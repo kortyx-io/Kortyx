@@ -87,7 +87,7 @@ export function DocsCodeBlock(props: DocsCodeBlockProps) {
   };
 
   return (
-    <div className="my-4 overflow-x-auto rounded-md border border-border bg-muted dark:border-zinc-800 dark:bg-zinc-950">
+    <div className="my-4 rounded-md border border-border bg-muted dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 dark:border-zinc-800">
         {entries.length > 1 ? (
           <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -131,28 +131,29 @@ export function DocsCodeBlock(props: DocsCodeBlockProps) {
         </div>
       </div>
 
-      <SyntaxHighlighter
-        style={isDark ? accessibleOneDark : oneLight}
-        language={activeEntry.language}
-        PreTag="div"
-        customStyle={{
-          margin: 0,
-          borderRadius: 0,
-          padding: "24px",
-          background: "transparent",
-          border: "none",
-          fontSize: "0.85rem",
-          overflowX: "auto",
-        }}
-        codeTagProps={{
-          style: {
-            fontFamily: "var(--font-geist-mono)",
-            fontStyle: "normal",
-          },
-        }}
-      >
-        {activeEntry.code}
-      </SyntaxHighlighter>
+      <div className="docs-sidebar-scroll overflow-x-auto">
+        <SyntaxHighlighter
+          style={isDark ? accessibleOneDark : oneLight}
+          language={activeEntry.language}
+          PreTag="div"
+          customStyle={{
+            margin: 0,
+            borderRadius: 0,
+            padding: "24px",
+            background: "transparent",
+            border: "none",
+            fontSize: "0.85rem",
+          }}
+          codeTagProps={{
+            style: {
+              fontFamily: "var(--font-geist-mono)",
+              fontStyle: "normal",
+            },
+          }}
+        >
+          {activeEntry.code}
+        </SyntaxHighlighter>
+      </div>
     </div>
   );
 }
