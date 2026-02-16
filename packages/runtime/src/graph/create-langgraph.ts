@@ -5,7 +5,8 @@ import type {
   NodeResult,
   WorkflowDefinition,
 } from "@kortyx/core";
-import { runReasonEngine, runWithHookContext } from "@kortyx/hooks";
+import { runWithHookContext } from "@kortyx/hooks";
+import { runReasonEngine } from "@kortyx/hooks/internal";
 import type { MemoryAdapter } from "@kortyx/memory";
 import type { GetProviderFn } from "@kortyx/providers";
 import { deepMergeWithArrayOverwrite } from "@kortyx/utils";
