@@ -108,6 +108,10 @@ export async function tryPrepareResumeStream({
       : {};
 
   const resumeDataPatch = isRecord(resumeData) ? resumeData : {};
+  const pendingMeta = isRecord(pending.schema?.meta) ? pending.schema.meta : {};
+  const resumeMemoryPatch = isRecord(pendingMeta.__kortyxResumeMemory)
+    ? pendingMeta.__kortyxResumeMemory
+    : undefined;
 
   const pendingData = isRecord(pending.state?.data) ? pending.state?.data : {};
   const workflowId =
@@ -134,6 +138,17 @@ export async function tryPrepareResumeStream({
   } satisfies GraphState;
 
   const wf = await selectWorkflow(resumedState.currentWorkflow as string);
+  const resumeUpdate: Record<string, unknown> = {};
+  if (Object.keys(resumeDataPatch).length > 0) {
+    resumeUpdate.data = {
+      ...pendingData,
+      ...resumeDataPatch,
+    };
+  }
+  if (resumeMemoryPatch) {
+    resumeUpdate.memory = resumeMemoryPatch;
+  }
+  const hasResumeUpdate = Object.keys(resumeUpdate).length > 0;
   const resumeValue =
     meta.selected?.length && pending.schema.kind === "multi-choice"
       ? meta.selected.map((x) => String(x))
@@ -144,6 +159,7 @@ export async function tryPrepareResumeStream({
     ...config,
     resume: true,
     ...(resumeValue !== undefined ? { resumeValue } : {}),
+    ...(hasResumeUpdate ? { resumeUpdate } : {}),
   });
   await store.delete(pending.token);
 
@@ -156,6 +172,7 @@ export async function tryPrepareResumeStream({
       ...config,
       resume: true,
       ...(resumeValue !== undefined ? { resumeValue } : {}),
+      ...(hasResumeUpdate ? { resumeUpdate } : {}),
     },
     selectWorkflow,
     ...(frameworkAdapter ? { frameworkAdapter } : {}),

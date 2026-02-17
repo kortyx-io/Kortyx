@@ -278,6 +278,13 @@ export async function createLangGraph(
             | null
             | undefined;
           if (patch && typeof patch === "object") {
+            // Preserve hook memory even when execution pauses via interrupt.
+            // Without this merge, checkpointed hook state (e.g. useReason drafts)
+            // can be lost before resume.
+            state.memory = deepMergeWithArrayOverwrite(
+              (state.memory ?? {}) as Record<string, unknown>,
+              patch,
+            );
             retryHookMemory = deepMergeWithArrayOverwrite(
               (retryHookMemory ?? {}) as Record<string, unknown>,
               patch,

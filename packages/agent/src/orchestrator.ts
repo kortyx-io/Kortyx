@@ -188,6 +188,17 @@ export async function orchestrateGraphStream({
       });
     }
 
+    const clientMeta =
+      record.schema.meta &&
+      typeof record.schema.meta === "object" &&
+      !Array.isArray(record.schema.meta)
+        ? Object.fromEntries(
+            Object.entries(record.schema.meta).filter(
+              ([key]) => !key.startsWith("__kortyx"),
+            ),
+          )
+        : undefined;
+
     out.write({
       type: "interrupt",
       requestId: record.requestId,
@@ -220,8 +231,8 @@ export async function orchestrateGraphStream({
         record.schema.schemaVersion.length > 0
           ? { schemaVersion: record.schema.schemaVersion }
           : {}),
-        ...(record.schema.meta && typeof record.schema.meta === "object"
-          ? { meta: record.schema.meta }
+        ...(clientMeta && Object.keys(clientMeta).length > 0
+          ? { meta: clientMeta }
           : {}),
         options: record.options.map((option) => ({
           id: option.id,
@@ -392,11 +403,13 @@ export async function orchestrateGraphStream({
         | unknown
         | undefined;
       const invokeState = isResume
-        ? resumeValue !== undefined
-          ? (new Command({ resume: resumeValue }) as any)
-          : resumeUpdate
-            ? (new Command({ update: resumeUpdate }) as any)
-            : (null as any)
+        ? resumeValue !== undefined && resumeUpdate
+          ? (new Command({ resume: resumeValue, update: resumeUpdate }) as any)
+          : resumeValue !== undefined
+            ? (new Command({ resume: resumeValue }) as any)
+            : resumeUpdate
+              ? (new Command({ update: resumeUpdate }) as any)
+              : (null as any)
         : (currentState as any);
       const runtimeStream = currentGraph.streamEvents(invokeState, {
         version: "v2",

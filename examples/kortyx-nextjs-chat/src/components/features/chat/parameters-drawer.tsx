@@ -44,8 +44,9 @@ export function ParametersDrawer({
                 Workflow override
               </Label>
               <p className="text-xs text-slate-500 dark:text-slate-400">
-                If set, runs that workflow id (e.g. <code>three-steps</code>).
-                Leave empty to use the default workflow.
+                If set, runs that workflow id (e.g.{" "}
+                <code>reason-interrupt-structured</code>). Leave empty to use
+                the default workflow.
               </p>
             </div>
             <Input

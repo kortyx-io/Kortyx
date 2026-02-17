@@ -2,7 +2,7 @@
 id: v0-runtime-interrupts-resume
 title: "Interrupts and Resume"
 description: "Pause node execution for user input and resume deterministically using tokens and request ids."
-keywords: [kortyx, interrupt, resume, human-input, pending-requests]
+keywords: [kortyx, interrupt, resume, human-input, pending-requests, langgraph]
 sidebar_label: "Interrupts and Resume"
 ---
 # Interrupts and Resume
@@ -25,6 +25,8 @@ const picked = await useInterrupt({
   },
 });
 ```
+
+Or use `useReason({ interrupt: ... })` when you want model-generated interrupt requests constrained by schema.
 
 ## Stream side
 
@@ -73,6 +75,32 @@ Accepted `selected` shapes:
 - string[]
 - `{ choice: { id } }`
 - `{ choices: [{ id }, ...] }`
+
+## LangGraph replay behavior (important)
+
+When a run resumes, LangGraph replays the node function from the top. This is expected engine behavior.
+
+What this means:
+
+- `useReason` resumes from its internal checkpoint.
+- Code before `useReason` can run again unless you guard it.
+
+Recommended patterns:
+
+- Put `useReason` first in the node and avoid pre-`useReason` side effects.
+- If you need pre-events (for example lifecycle snapshots), guard them with `useNodeState` so they emit once.
+
+```ts
+const [startEmitted, setStartEmitted] = useNodeState("startEmitted", false);
+
+if (!startEmitted) {
+  useStructuredData({ dataType: "lifecycle", mode: "snapshot", data: { step: "start" } });
+  setStartEmitted(true);
+}
+
+const result = await useReason({ ... });
+setStartEmitted(false);
+```
 
 ## Persistence requirements
 

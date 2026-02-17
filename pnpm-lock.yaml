@@ -223,6 +223,9 @@ importers:
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.4.0
+      zod:
+        specifier: ^4.1.13
+        version: 4.1.13
     devDependencies:
       '@babel/core':
         specifier: ^7.23.0
@@ -357,6 +360,9 @@ importers:
       '@kortyx/providers':
         specifier: workspace:*
         version: link:../providers
+      zod:
+        specifier: ^4.1.13
+        version: 4.1.13
     devDependencies:
       tsup:
         specifier: ^8.5.1
@@ -6043,7 +6049,7 @@ snapshots:
       mustache: 4.2.0
       p-queue: 6.6.2
       uuid: 10.0.0
-      zod: 3.25.76
+      zod: 4.1.13
     transitivePeerDependencies:
       - '@opentelemetry/api'
       - '@opentelemetry/exporter-trace-otlp-proto'
