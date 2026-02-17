@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.5.1](https://github.com/kortyx-io/kortyx/compare/hooks-v0.5.0...hooks-v0.5.1) (2026-02-17)
+
+
+### Bug Fixes
+
+* **hooks:** fix hooks-core test typing ([2941610](https://github.com/kortyx-io/kortyx/commit/2941610a1d28509f7e42f894decd37d6c95bc308))
+* **release:** publish packages with pnpm and public access ([357e268](https://github.com/kortyx-io/kortyx/commit/357e2680469e729ea58d103915989142f668a39a))
+* **release:** publish packages with pnpm and public access ([5ef7498](https://github.com/kortyx-io/kortyx/commit/5ef7498330129f376ca7197b70cb7b6a38138e8a))
+
 ## [0.5.0](https://github.com/kortyx-io/kortyx/compare/hooks-v0.4.1...hooks-v0.5.0) (2026-02-17)
 
 
