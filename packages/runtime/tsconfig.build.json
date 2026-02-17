@@ -1,25 +1,14 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "module": "NodeNext",
-    "moduleResolution": "NodeNext",
-    "declaration": true,
-    "declarationMap": true,
-    "sourceMap": false,
-    "skipLibCheck": true,
-    "skipDefaultLibCheck": true,
-    "incremental": true,
-    "noEmit": false,
-    "outDir": "./dist",
-    "rootDir": "./src",
+    // Disable project/incremental mode for tsup declaration builds
+    "composite": false,
+    "incremental": false,
+
+    // Relax strictness for build compatibility
     "strict": false,
     "exactOptionalPropertyTypes": false,
     "noImplicitReturns": false,
-    "noUnusedLocals": false,
-    "noUnusedParameters": false,
-    "noUncheckedIndexedAccess": false,
-    "isolatedModules": true,
-    "baseUrl": ".",
-    "paths": {}
+    "noUncheckedIndexedAccess": false
   }
 }
