@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.0](https://github.com/kortyx-io/kortyx/compare/memory-v0.2.4...memory-v0.3.0) (2026-02-17)
+
+
+### Features
+
+* **hooks:** consolidate reason+interrupt contracts ([4716a4d](https://github.com/kortyx-io/kortyx/commit/4716a4d4739b4a71b7c6e84717c830cd9ff625a6))
+
 ## [0.2.4](https://github.com/kortyx-io/kortyx/compare/memory-v0.2.3...memory-v0.2.4) (2026-02-17)
 
 

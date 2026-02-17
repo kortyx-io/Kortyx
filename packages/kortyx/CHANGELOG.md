@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0](https://github.com/kortyx-io/kortyx/compare/kortyx-v0.4.1...kortyx-v0.5.0) (2026-02-17)
+
+
+### Features
+
+* **hooks:** consolidate reason+interrupt contracts ([4716a4d](https://github.com/kortyx-io/kortyx/commit/4716a4d4739b4a71b7c6e84717c830cd9ff625a6))
+
 ## [0.4.1](https://github.com/kortyx-io/kortyx/compare/kortyx-v0.4.0...kortyx-v0.4.1) (2026-02-17)
 
 
