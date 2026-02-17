@@ -13,7 +13,7 @@
     "kortyx"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/packages/cli#readme",
+  "homepage": "https://kortyx.io/",
   "bugs": {
     "url": "https://github.com/kortyx-io/kortyx/issues"
   },
@@ -29,7 +29,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/kortyx-io/kortyx",
+    "url": "https://github.com/kortyx-io/kortyx.git",
     "directory": "packages/cli"
   }
 }
