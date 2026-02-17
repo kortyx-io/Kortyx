@@ -12,7 +12,7 @@
     "kortyx"
   ],
   "license": "Apache-2.0",
-  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/providers/google#readme",
+  "homepage": "https://kortyx.io/",
   "bugs": {
     "url": "https://github.com/kortyx-io/kortyx/issues"
   },
@@ -31,7 +31,7 @@
     "CHANGELOG.md"
   ],
   "scripts": {
-    "build": "tsc -p tsconfig.build.json",
+    "build": "tsup",
     "dev": "tsc --watch",
     "lint": "biome check src",
     "test": "pnpm -s type-check",
@@ -42,12 +42,13 @@
   },
   "devDependencies": {
     "turbo": "^2.5.4",
-    "typescript": "5.7.2"
+    "typescript": "5.7.2",
+    "tsup": "^8.5.1"
   },
   "sideEffects": false,
   "repository": {
     "type": "git",
-    "url": "https://github.com/kortyx-io/kortyx",
+    "url": "https://github.com/kortyx-io/kortyx.git",
     "directory": "providers/google"
   }
 }
