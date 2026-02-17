@@ -4,71 +4,50 @@ import type {
   NodeContext,
 } from "@kortyx/core";
 import type { MemoryAdapter } from "@kortyx/memory";
-import type { ProviderModelRef } from "@kortyx/providers";
 import { getHookContext } from "./context";
-import type { RunReasonEngineResult } from "./reason-engine";
-import { runReasonEngine } from "./reason-engine";
+import { awaitInterruptInternal } from "./interrupt";
+import { useReason as useReasonInternal } from "./reason/use-reason";
+import { emitStructuredData } from "./structured";
+import type {
+  UseInterruptArgs,
+  UseReasonArgs,
+  UseReasonResult,
+  UseStructuredDataArgs,
+} from "./types";
+
+export type {
+  SchemaLike,
+  StructuredDataMode,
+  UseInterruptArgs,
+  UseReasonArgs,
+  UseReasonInterruptConfig,
+  UseReasonResult,
+  UseReasonStructuredConfig,
+  UseReasonStructuredStreamMode,
+  UseStructuredDataArgs,
+} from "./types";
 
 type StateSetter<T> = (next: T | ((prev: T) => T)) => void;
-
-export type UseReasonArgs = {
-  model: ProviderModelRef;
-  input: string;
-  system?: string | undefined;
-  temperature?: number | undefined;
-  emit?: boolean | undefined;
-  stream?: boolean | undefined;
-};
-
-export type UseReasonResult = {
-  text: string;
-  raw?: unknown;
-};
 
 export function useEmit(): NodeContext["emit"] {
   const ctx = getHookContext();
   return ctx.node.emit;
 }
 
-export function useStructuredData(args: {
-  data: unknown;
-  dataType?: string | undefined;
-}): void {
-  const ctx = getHookContext();
-  ctx.node.emit("structured_data", {
-    node: ctx.node.graph.node,
-    ...(typeof args.dataType === "string" && args.dataType.length > 0
-      ? { dataType: args.dataType }
-      : {}),
-    data: args.data,
-  });
+export function useStructuredData<TData = unknown>(
+  args: UseStructuredDataArgs<TData>,
+): void {
+  emitStructuredData(args);
 }
 
-async function reasonEngine(
-  args: UseReasonArgs,
-): Promise<RunReasonEngineResult> {
-  const ctx = getHookContext();
-  const getProvider = ctx.getProvider;
-  if (!getProvider) {
-    throw new Error("useReason requires a provider factory in runtime config.");
-  }
-
-  return runReasonEngine({
-    getProvider,
-    model: args.model,
-    input: args.input,
-    system: args.system,
-    temperature: args.temperature,
-    defaultTemperature: ctx.node.config?.model?.temperature,
-    stream: args.stream,
-    emit: args.emit,
-    nodeId: ctx.node.graph.node,
-    emitEvent: ctx.node.emit,
-  });
-}
-
-export function useReason(args: UseReasonArgs): Promise<UseReasonResult> {
-  return reasonEngine(args);
+export function useReason<
+  TOutput = unknown,
+  TRequest extends InterruptInput = InterruptInput,
+  TResponse = InterruptResult,
+>(
+  args: UseReasonArgs<TOutput, TRequest, TResponse>,
+): Promise<UseReasonResult<TOutput, TResponse>> {
+  return useReasonInternal(args);
 }
 
 export function useAiMemory(): MemoryAdapter {
@@ -79,11 +58,11 @@ export function useAiMemory(): MemoryAdapter {
   return ctx.memoryAdapter;
 }
 
-export function useAiInterrupt(
-  input: InterruptInput,
-): Promise<InterruptResult> {
-  const ctx = getHookContext();
-  return Promise.resolve(ctx.node.awaitInterrupt(input));
+export function useInterrupt<
+  TRequest extends InterruptInput = InterruptInput,
+  TResponse = InterruptResult,
+>(args: UseInterruptArgs<TRequest, TResponse>): Promise<TResponse> {
+  return awaitInterruptInternal(args);
 }
 
 export function useNodeState<T>(initialValue: T): [T, StateSetter<T>];

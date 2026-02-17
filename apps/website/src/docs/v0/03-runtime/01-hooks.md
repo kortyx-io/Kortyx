@@ -1,72 +1,89 @@
 ---
 id: v0-runtime-hooks
 title: "Hooks"
-description: "Use Kortyx hooks for AI calls, interrupts, memory access, structured data, and runtime state."
-keywords: [kortyx, hooks, useAiProvider, useWorkflowState, useNodeState]
+description: "Use Kortyx hooks for reasoning, interrupts, memory access, structured data, and runtime state."
+keywords: [kortyx, hooks, useReason, useInterrupt, useWorkflowState, useNodeState, useStructuredData]
 sidebar_label: "Hooks"
 ---
 # Hooks
 
 Hooks are the public node-level runtime API (import from `kortyx`).
 
-## `useAiProvider(modelId?)`
+## `useReason(...)`
+
+`useReason` is the primary LLM hook.
 
 ```ts
-import { useAiProvider } from "kortyx";
+import { useReason } from "kortyx";
+import { z } from "zod";
+import { google } from "@/lib/providers";
 
-export const answerNode = async ({ input }: { input: unknown }) => {
-  const model = useAiProvider("google:gemini-2.5-flash");
+const PlanSchema = z.object({
+  summary: z.string(),
+  checklist: z.array(z.string()),
+  userChoice: z.string(),
+});
 
-  const res = await model.call({
-    prompt: String(input ?? ""),
-    system: "Be concise.",
-    temperature: 0.2,
-  });
+const ChoiceRequestSchema = z.object({
+  kind: z.enum(["choice", "multi-choice"]),
+  question: z.string(),
+  options: z.array(z.object({ id: z.string(), label: z.string() })).min(2),
+});
 
-  return { ui: { message: res.text } };
-};
-```
+const ChoiceResponseSchema = z.union([
+  z.string(),
+  z.array(z.string()).min(1),
+]);
 
-Current behavior:
-
-- provider/model defaults are read from node config or fallback defaults
-- internally calls `ctx.speak(...)`
-- returns `{ text: string }`
-
-## `useAiInterrupt(input)`
-
-```ts
-import { useAiInterrupt } from "kortyx";
-
-const selected = await useAiInterrupt({
-  kind: "choice",
-  question: "Pick one",
-  options: [
-    { id: "a", label: "Alpha" },
-    { id: "b", label: "Beta" },
-  ],
+const result = await useReason({
+  id: "launch-plan",
+  model: google("gemini-2.5-flash"),
+  input: "Plan a one-week launch.",
+  outputSchema: PlanSchema,
+  structured: {
+    dataType: "reason.plan",
+    stream: "patch",
+    schemaId: "reason-plan",
+    schemaVersion: "1",
+  },
+  interrupt: {
+    requestSchema: ChoiceRequestSchema,
+    responseSchema: ChoiceResponseSchema,
+    schemaId: "reason-choice",
+    schemaVersion: "1",
+  },
 });
 ```
 
-Supported input kinds:
+Behavior:
 
-- `text`
-- `choice`
-- `multi-choice`
+- First pass is a single model call that produces draft output and interrupt request.
+- Runtime emits `interrupt` and pauses.
+- Resume continues from the `useReason` checkpoint and runs the continuation pass.
+
+## `useInterrupt({ request, ...schemas })`
+
+Use this when you want fully manual interrupt payloads without LLM-generated request shaping.
+
+```ts
+import { useInterrupt } from "kortyx";
+
+const selected = await useInterrupt({
+  request: {
+    kind: "choice",
+    question: "Pick one",
+    options: [
+      { id: "a", label: "Alpha" },
+      { id: "b", label: "Beta" },
+    ],
+  },
+});
+```
 
 Return:
 
 - `string` for `text` and `choice`
 - `string[]` for `multi-choice`
-
-## `useAiMemory()`
-
-Returns the configured `MemoryAdapter`. If none is configured, it throws.
-
-```ts
-const memory = useAiMemory();
-await memory.save("session-1", state);
-```
 
 ## `useNodeState` and `useWorkflowState`
 
@@ -102,3 +119,32 @@ useStructuredData({
 
 `useStructuredData` emits `structured_data` from the current node context.
 
+## `useAiMemory()`
+
+Returns the configured `MemoryAdapter`. If none is configured, it throws.
+
+```ts
+const memory = useAiMemory();
+await memory.save("session-1", state);
+```
+
+## LangGraph Replay Note
+
+LangGraph replays node code from the top on resume. `useReason` continues from its internal checkpoint, but any code placed before `useReason` runs again.
+
+Workarounds:
+
+- Prefer a minimal node where `useReason` is the first meaningful operation.
+- Guard pre-reason side effects with `useNodeState`.
+
+```ts
+const [started, setStarted] = useNodeState("started", false);
+
+if (!started) {
+  useStructuredData({ dataType: "lifecycle", mode: "snapshot", data: { step: "start" } });
+  setStarted(true);
+}
+
+const result = await useReason({ ... });
+setStarted(false);
+```
