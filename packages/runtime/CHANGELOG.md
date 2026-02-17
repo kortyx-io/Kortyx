@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.6.0](https://github.com/kortyx-io/kortyx/compare/runtime-v0.5.1...runtime-v0.6.0) (2026-02-17)
+
+
+### Features
+
+* **hooks:** consolidate reason+interrupt contracts ([4716a4d](https://github.com/kortyx-io/kortyx/commit/4716a4d4739b4a71b7c6e84717c830cd9ff625a6))
+
+
+### Bug Fixes
+
+* **hooks:** stabilize useReason interrupt resume and split internals ([fa24712](https://github.com/kortyx-io/kortyx/commit/fa247129f160d129cdf2c05f0a48a2236ea71bb8))
+
 ## [0.5.1](https://github.com/kortyx-io/kortyx/compare/runtime-v0.5.0...runtime-v0.5.1) (2026-02-17)
 
 
