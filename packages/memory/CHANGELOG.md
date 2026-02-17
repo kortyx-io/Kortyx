@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.1](https://github.com/kortyx-io/kortyx/compare/memory-v0.3.0...memory-v0.3.1) (2026-02-17)
+
+
+### Bug Fixes
+
+* **release:** publish packages with pnpm and public access ([357e268](https://github.com/kortyx-io/kortyx/commit/357e2680469e729ea58d103915989142f668a39a))
+* **release:** publish packages with pnpm and public access ([5ef7498](https://github.com/kortyx-io/kortyx/commit/5ef7498330129f376ca7197b70cb7b6a38138e8a))
+
 ## [0.3.0](https://github.com/kortyx-io/kortyx/compare/memory-v0.2.4...memory-v0.3.0) (2026-02-17)
 
 
