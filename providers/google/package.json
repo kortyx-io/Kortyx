@@ -1,0 +1,53 @@
+{
+  "name": "@kortyx/google",
+  "version": "0.1.0",
+  "private": false,
+  "description": "Google Gemini provider integration for Kortyx.",
+  "keywords": [
+    "ai",
+    "agent",
+    "providers",
+    "google",
+    "gemini",
+    "kortyx"
+  ],
+  "license": "Apache-2.0",
+  "homepage": "https://github.com/kortyx-io/kortyx/tree/main/providers/google#readme",
+  "bugs": {
+    "url": "https://github.com/kortyx-io/kortyx/issues"
+  },
+  "author": "Kortyx (https://github.com/kortyx-io)",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist/**",
+    "README.md",
+    "CHANGELOG.md"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc --watch",
+    "lint": "biome check src",
+    "test": "pnpm -s type-check",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@kortyx/providers": "workspace:*"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.4",
+    "typescript": "5.7.2"
+  },
+  "sideEffects": false,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kortyx-io/kortyx",
+    "directory": "providers/google"
+  }
+}

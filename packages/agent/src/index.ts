@@ -1,5 +1,20 @@
 // release-test: 2026-01-22
-export type { CreateAgentArgs } from "./chat/create-agent";
+
+export type { ChatRequestBody } from "./adapters/http";
+export {
+  createChatRouteHandler,
+  parseChatRequestBody,
+  processChatRequestBody,
+} from "./adapters/http";
+export type { StreamChatFromRouteArgs } from "./adapters/http-client";
+export { streamChatFromRoute } from "./adapters/http-client";
+export type {
+  Agent,
+  AgentMemoryConfig,
+  AgentProcessOptions,
+  AgentSessionConfig,
+  CreateAgentArgs,
+} from "./chat/create-agent";
 export { createAgent } from "./chat/create-agent";
 export type { ProcessChatArgs } from "./chat/process-chat";
 export { processChat } from "./chat/process-chat";

@@ -2,28 +2,32 @@
 /**
  * @kortyx/providers
  *
- * Kortyx-native provider system for AI models.
- * Provides a unified interface for different LLM providers (Google, OpenAI, Anthropic).
+ * Provider-agnostic registry + contracts for Kortyx model providers.
+ * Concrete providers live in separate packages (e.g. @kortyx/google).
  */
 
-// Factory
+// Registry
 export {
+  createProviderRegistry,
   getAvailableModels,
   getInitializedProviders,
   getProvider,
   hasProvider,
-  initializeProviders,
+  registerProvider,
+  resetProviders,
 } from "./factory";
-export type { GoogleModelId } from "./providers/google";
-// Built-in providers
-export { createGoogleProvider, GOOGLE_MODELS } from "./providers/google";
 // Types
 export type {
   GetProviderFn,
+  KortyxInvokeResult,
   KortyxModel,
+  KortyxPromptMessage,
+  KortyxPromptRole,
+  KortyxStreamChunk,
   ModelFactory,
   ModelOptions,
   ProviderConfig,
-  ProviderFactoryConfig,
+  ProviderModelRef,
+  ProviderRegistry,
+  ProviderSelector,
 } from "./types";
-export { ProviderConfigSchema } from "./types";

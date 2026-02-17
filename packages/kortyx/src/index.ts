@@ -1,8 +1,24 @@
 // release-test: 2026-01-22
 // Public DX surface for the Kortyx framework.
 
-export type { CreateAgentArgs, ProcessChatArgs } from "@kortyx/agent";
-export { createAgent, processChat } from "@kortyx/agent";
+export type {
+  Agent,
+  AgentMemoryConfig,
+  AgentProcessOptions,
+  AgentSessionConfig,
+  ChatRequestBody,
+  CreateAgentArgs,
+  ProcessChatArgs,
+  StreamChatFromRouteArgs,
+} from "@kortyx/agent";
+export {
+  createAgent,
+  createChatRouteHandler,
+  parseChatRequestBody,
+  processChat,
+  processChatRequestBody,
+  streamChatFromRoute,
+} from "@kortyx/agent";
 export type {
   GraphState,
   MemoryEnvelope,
@@ -15,12 +31,13 @@ export type {
   WorkflowId,
 } from "@kortyx/core";
 export { defineWorkflow, loadWorkflow, validateWorkflow } from "@kortyx/core";
+export type { UseReasonArgs, UseReasonResult } from "@kortyx/hooks";
 export {
   useAiInterrupt,
   useAiMemory,
-  useAiProvider,
   useEmit,
   useNodeState,
+  useReason,
   useStructuredData,
   useWorkflowState,
 } from "@kortyx/hooks";

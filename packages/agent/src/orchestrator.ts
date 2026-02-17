@@ -40,10 +40,8 @@ export interface OrchestrateArgs {
 }
 
 /**
- * Orchestrates LangGraph execution with mid-stream transitions.
- * Works with both:
- *  - transition chunks emitted via transformGraphStreamForUI
- *  - transition events emitted via ctx.emit("transition", ...)
+ * Orchestrates LangGraph execution with mid-stream transitions emitted via
+ * ctx.emit("transition", ...).
  */
 export async function orchestrateGraphStream({
   sessionId,
@@ -59,6 +57,7 @@ export async function orchestrateGraphStream({
   let currentGraph = graph;
   let currentState: GraphState = state;
   let finished = false;
+  const debugEnabled = Boolean((config as any)?.features?.tracing);
   const namespacesUsed = new Set<string>();
 
   // Announce session id to clients so they can persist it
@@ -76,13 +75,11 @@ export async function orchestrateGraphStream({
   };
 
   // Bridge internal graph emits to our stream AND capture transitions
-  // Track which nodes streamed text so we can suppress duplicate full messages
-  const streamedNodes = new Set<string>();
   let lastStatusMsg = "";
   let lastStatusAt = 0;
 
-  // No chunking needed for final ui.message; we forward a single "message" event now.
-  // Capture interrupt payloads to emit a final interrupt chunk after graph ends.
+  // Capture interrupt payloads emitted by runtime hooks and forward them as
+  // resumable interrupt chunks.
   interface HumanInputPayload {
     node?: string;
     workflow?: string;
@@ -102,12 +99,84 @@ export async function orchestrateGraphStream({
   let pendingRecordToken: string | null = null;
   // Track if current invocation is a resume, so we can de-dupe interrupt events
   let activeIsResume = false;
-  // Avoid emitting duplicate interrupt chunks (e.g., both from forwardEmit and placeholder)
+  // Avoid emitting duplicate interrupt chunks in the same run.
   let wroteHumanInput = false;
 
   const pendingStore: PendingRequestStore | undefined =
     frameworkAdapter?.pendingRequests;
   const pendingTtlMs = frameworkAdapter?.ttlMs ?? 15 * 60 * 1000;
+
+  const persistAndEmitInterrupt = async (
+    payload: HumanInputPayload,
+  ): Promise<void> => {
+    if (activeIsResume || wroteHumanInput) return;
+
+    const token = makeResumeToken();
+    const requestId = makeRequestId("human");
+    pendingRecordToken = token;
+    const input = payload.input ?? {};
+    const optionsList = Array.isArray(input.options) ? input.options : [];
+    const kind = input.kind || (input.multiple ? "multi-choice" : "choice");
+    const isText = kind === "text";
+
+    const record: PendingRequestRecord = {
+      token,
+      requestId,
+      sessionId,
+      runId,
+      workflow: payload.workflow || (currentState.currentWorkflow as string),
+      node: payload.node || "",
+      state: { ...(currentState as GraphState), awaitingHumanInput: true },
+      schema: isText
+        ? {
+            kind: kind as any,
+            multiple: Boolean(input.multiple),
+            ...(input.question ? { question: input.question } : {}),
+          }
+        : {
+            kind: kind as any,
+            multiple: Boolean(input.multiple),
+            question: String(input.question || "Please choose an option."),
+          },
+      options: optionsList.map((option: any) => ({
+        id: String(option.id),
+        label: String(option.label),
+        description:
+          typeof option.description === "string"
+            ? option.description
+            : undefined,
+        value: option.value,
+      })),
+      createdAt: Date.now(),
+      ttlMs: pendingTtlMs,
+    };
+
+    if (pendingStore) {
+      pendingStore.save(record).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error("[orchestrator] failed to save pending request", error);
+      });
+    }
+
+    out.write({
+      type: "interrupt",
+      requestId: record.requestId,
+      resumeToken: record.token,
+      workflow: record.workflow,
+      node: record.node,
+      input: {
+        kind: record.schema.kind,
+        multiple: record.schema.multiple,
+        question: record.schema.question,
+        options: record.options.map((option) => ({
+          id: option.id,
+          label: option.label,
+          description: option.description,
+        })),
+      },
+    } as any);
+    wroteHumanInput = true;
+  };
 
   const forwardEmit = (event: string, payload: unknown) => {
     if (event === "error") {
@@ -121,6 +190,7 @@ export async function orchestrateGraphStream({
       return;
     }
     if (event === "status") {
+      if (!debugEnabled) return;
       const msg = String((payload as { message?: unknown })?.message ?? "");
       const now = Date.now();
       if (msg && msg === lastStatusMsg && now - lastStatusAt < 250) return; // de-dupe rapid duplicates
@@ -133,7 +203,6 @@ export async function orchestrateGraphStream({
       const node = (payload as { node?: string })?.node;
       if (!node) return;
       out.write({ type: "text-start", node });
-      streamedNodes.add(node);
       return;
     }
     if (event === "text-delta") {
@@ -141,7 +210,6 @@ export async function orchestrateGraphStream({
       const delta = String((payload as { delta?: unknown })?.delta ?? "");
       if (!node || !delta) return;
       out.write({ type: "text-delta", delta, node });
-      streamedNodes.add(node);
       return;
     }
     if (event === "text-end") {
@@ -174,102 +242,23 @@ export async function orchestrateGraphStream({
         payload:
           (payload as { payload?: Record<string, unknown> })?.payload ?? {},
       });
-      // 2) capture for orchestration even if the uiStream never emits it
+      // 2) capture for orchestration
       pending.to = (payload as { transitionTo?: string })?.transitionTo ?? null;
       pending.payload =
         (payload as { payload?: Record<string, unknown> })?.payload ?? {};
       return;
     }
     if (event === "interrupt") {
-      // Ignore duplicate interrupt events on resume invocations to avoid double prompts
-      if (activeIsResume) return;
-      try {
-        const p = payload as any;
-        // eslint-disable-next-line no-console
-        console.log(
-          `[orchestrator] interrupt node=${p?.node} workflow=${p?.workflow} options=${
-            Array.isArray(p?.input?.options) ? p.input.options.length : 0
-          }`,
-        );
-      } catch {}
-      // Persist a snapshot and emit a typed chunk immediately
       const p = payload as any;
       const local: HumanInputPayload = {
         node: p?.node,
         workflow: p?.workflow,
         input: p?.input,
       };
-
-      const token = makeResumeToken();
-      const requestId = makeRequestId("human");
-      pendingRecordToken = token;
-      const options = Array.isArray(local.input?.options)
-        ? (local.input!.options! as Array<any>)
-        : [];
-
-      const kind =
-        local.input?.kind ||
-        (local.input?.multiple ? "multi-choice" : "choice");
-      const isText = kind === "text";
-
-      const record: PendingRequestRecord = {
-        token,
-        requestId,
-        sessionId: sessionId,
-        runId,
-        workflow: local.workflow || (currentState.currentWorkflow as string),
-        node: local.node || "",
-        // Provide an immediate snapshot so resume can work even if user clicks fast
-        state: { ...(currentState as GraphState), awaitingHumanInput: true },
-        schema: isText
-          ? {
-              kind: kind as any,
-              multiple: Boolean(local.input?.multiple),
-              ...(local.input?.question
-                ? { question: local.input.question }
-                : {}),
-            }
-          : {
-              kind: kind as any,
-              multiple: Boolean(local.input?.multiple),
-              question: String(
-                local.input?.question || "Please choose an option.",
-              ),
-            },
-        options: options.map((o: any) => ({
-          id: String(o.id),
-          label: String(o.label),
-          description:
-            typeof o.description === "string" ? o.description : undefined,
-          value: (o as any).value,
-        })),
-        createdAt: Date.now(),
-        ttlMs: pendingTtlMs,
-      };
-      if (pendingStore) {
-        pendingStore.save(record).catch((e) => {
-          // eslint-disable-next-line no-console
-          console.error("[orchestrator] failed to save pending request", e);
-        });
-      }
-      out.write({
-        type: "interrupt",
-        requestId: record.requestId,
-        resumeToken: record.token,
-        workflow: record.workflow,
-        node: record.node,
-        input: {
-          kind: record.schema.kind,
-          multiple: record.schema.multiple,
-          question: record.schema.question,
-          options: record.options.map((o) => ({
-            id: o.id,
-            label: o.label,
-            description: o.description,
-          })),
-        },
-      } as any);
-      wroteHumanInput = true;
+      void persistAndEmitInterrupt(local).catch((error) => {
+        // eslint-disable-next-line no-console
+        console.error("[orchestrator] failed to emit interrupt", error);
+      });
       return;
     }
   };
@@ -287,10 +276,12 @@ export async function orchestrateGraphStream({
         "anonymous-session";
       const checkpointNs = String(currentState.currentWorkflow || "default");
       namespacesUsed.add(checkpointNs);
-      out.write({
-        type: "status",
-        message: `🧵 thread_id=${threadId} run_id=${runId} workflow=${currentState.currentWorkflow}`,
-      });
+      if (debugEnabled) {
+        out.write({
+          type: "status",
+          message: `🧵 thread_id=${threadId} run_id=${runId} workflow=${currentState.currentWorkflow}`,
+        });
+      }
 
       // Stream runtime events (LLM deltas, node starts/ends, etc.)
       const isResume = Boolean((currentGraph.config as any)?.resume);
@@ -319,130 +310,21 @@ export async function orchestrateGraphStream({
         },
       });
 
-      // Diagnostics for stream invocation shape
-      try {
+      if (debugEnabled) {
         out.write({
           type: "status",
           message: `▶️ streamEvents invoke: resume=${Boolean((currentGraph.config as any)?.resume)} thread_id=${threadId} run_id=${runId} ns=${String(currentState.currentWorkflow || "default")}`,
         } as any);
-      } catch {}
+      }
 
       const uiStream = transformGraphStreamForUI(runtimeStream as any, {
-        debug: Boolean((config as any)?.features?.tracing),
+        debug: debugEnabled,
+        emitStatus: debugEnabled,
       });
-
-      // Also allow transition detection via uiStream (if transformer emits it)
-      let loopTransitionTo: string | null = null;
-      let loopTransitionPayload: Record<string, unknown> = {};
 
       for await (const chunk of uiStream as AsyncIterable<StreamChunk>) {
         if (finished) break;
-        const node = (chunk as { node?: string }).node;
-        // Convert placeholder interrupt chunk (from transformer) into a real chunk with tokens + persist snapshot
-        if (
-          (chunk as any).type === "interrupt" &&
-          (!(chunk as any).resumeToken || !(chunk as any).requestId)
-        ) {
-          if (wroteHumanInput) {
-            // Already emitted an interrupt for this pause; skip placeholder
-            continue;
-          }
-          const hi = chunk as any;
-          const token = makeResumeToken();
-          const requestId = makeRequestId("human");
-          pendingRecordToken = token;
-          const options = Array.isArray(hi.input?.options)
-            ? hi.input.options
-            : [];
-
-          const kind =
-            hi.input?.kind || (hi.input?.multiple ? "multi-choice" : "choice");
-          const isText = kind === "text";
-
-          const record: PendingRequestRecord = {
-            token,
-            requestId,
-            sessionId: sessionId,
-            runId,
-            workflow: currentState.currentWorkflow as string,
-            node: node || "",
-            state: {
-              ...(currentState as GraphState),
-              awaitingHumanInput: true,
-            },
-            schema: isText
-              ? {
-                  kind: kind as any,
-                  multiple: Boolean(hi.input?.multiple),
-                  ...(hi.input?.question
-                    ? { question: hi.input.question }
-                    : {}),
-                }
-              : {
-                  kind: kind as any,
-                  multiple: Boolean(hi.input?.multiple),
-                  question: String(
-                    hi.input?.question || "Please choose an option.",
-                  ),
-                },
-            options: options.map((o: any) => ({
-              id: String(o.id),
-              label: String(o.label),
-              description:
-                typeof o.description === "string" ? o.description : undefined,
-              value: (o as any).value,
-            })),
-            createdAt: Date.now(),
-            ttlMs: pendingTtlMs,
-          };
-          if (pendingStore) {
-            await pendingStore.save(record);
-          }
-          out.write({
-            type: "interrupt",
-            requestId,
-            resumeToken: token,
-            workflow: record.workflow,
-            node: record.node,
-            input: {
-              kind: record.schema.kind,
-              multiple: record.schema.multiple,
-              question: record.schema.question,
-              options: record.options.map((o) => ({
-                id: o.id,
-                label: o.label,
-                description: o.description,
-              })),
-            },
-          } as any);
-          wroteHumanInput = true;
-          continue;
-        }
-        if (chunk.type === "text-delta") {
-          if (typeof chunk.delta === "string" && chunk.delta.length > 60) {
-            const text = chunk.delta as string;
-            for (let i = 0; i < text.length; i += 60) {
-              out.write({
-                type: "text-delta",
-                delta: text.slice(i, i + 60),
-                node,
-              });
-            }
-            if (node) streamedNodes.add(node);
-          } else {
-            out.write(chunk);
-            if (node) streamedNodes.add(node);
-          }
-        } else {
-          out.write(chunk);
-        }
-
-        // Transition surfaced by transformer
-        if (chunk.type === "transition") {
-          loopTransitionTo = String(chunk.transitionTo || "");
-          loopTransitionPayload = chunk.payload ?? {};
-          break; // stop current workflow, move to next
-        }
+        out.write(chunk);
 
         if (chunk.type === "done") {
           workflowFinalState = (chunk.data as GraphState) ?? null;
@@ -452,11 +334,8 @@ export async function orchestrateGraphStream({
 
       if (finished) return;
 
-      // Prefer transition detected from the uiStream; otherwise use pending from emit()
-      const transitionTo = loopTransitionTo || pending.to;
-      const transitionPayload = Object.keys(loopTransitionPayload).length
-        ? loopTransitionPayload
-        : pending.payload;
+      const transitionTo = pending.to;
+      const transitionPayload = pending.payload;
 
       // Reset pending so we don't carry it accidentally
       pending.to = null;
@@ -499,11 +378,12 @@ export async function orchestrateGraphStream({
           continue; // run the next graph
         } catch (err) {
           out.write({
-            type: "status",
-            message: `⚠️ Transition failed to '${transitionTo}': ${
+            type: "error",
+            message: `Transition failed to '${transitionTo}': ${
               err instanceof Error ? err.message : String(err)
             }`,
           });
+          out.write({ type: "done" });
           out.end();
           return;
         }
@@ -562,7 +442,11 @@ export async function orchestrateGraphStream({
     }
   })().catch((err) => {
     console.error("[error:orchestrateGraphStream]", err);
-    out.write({ type: "status", message: `Error: ${err.message}` });
+    out.write({
+      type: "error",
+      message: err instanceof Error ? err.message : String(err),
+    });
+    out.write({ type: "done" });
     out.end();
   });
 
