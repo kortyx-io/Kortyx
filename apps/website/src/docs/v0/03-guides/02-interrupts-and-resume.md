@@ -109,4 +109,4 @@ Resume only works if the framework adapter persists pending requests + checkpoin
 - in-memory adapter: good for local dev, not restart-safe
 - redis adapter: recommended for production resume
 
-See [Framework Adapters](./04-framework-adapters.md).
+See [Framework Adapters](../04-production/02-framework-adapters.md).

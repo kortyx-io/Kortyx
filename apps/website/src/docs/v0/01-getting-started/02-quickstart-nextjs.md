@@ -36,6 +36,31 @@ export const generalChatWorkflow = defineWorkflow({
 });
 ```
 
+```js
+// src/workflows/general-chat.workflow.js
+import { defineWorkflow } from "kortyx";
+import { chatNode } from "@/nodes/chat.node";
+
+export const generalChatWorkflow = defineWorkflow({
+  id: "general-chat",
+  version: "1.0.0",
+  description: "Single-node chat workflow",
+  nodes: {
+    chat: {
+      run: chatNode,
+      params: {
+        model: "google:gemini-2.5-flash",
+        temperature: 0.3,
+      },
+    },
+  },
+  edges: [
+    ["__start__", "chat"],
+    ["chat", "__end__"],
+  ],
+});
+```
+
 ## 2. Create a node
 
 ```ts
@@ -122,5 +147,5 @@ GOOGLE_API_KEY=your_key_here pnpm dev
 
 Next:
 
-- [Hooks](../03-runtime/01-hooks.md)
-- [Interrupts and Resume](../03-runtime/02-interrupts-and-resume.md)
+- [Hooks](../02-core-concepts/06-hooks.md)
+- [Interrupts and Resume](../03-guides/02-interrupts-and-resume.md)

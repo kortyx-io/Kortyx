@@ -14,6 +14,7 @@ import {
 import { rewriteMarkdownHref } from "@/lib/docs";
 import { cn } from "@/lib/utils/cn";
 import { extractCodeFileLabel } from "@/lib/utils/extract-code-file-label";
+import { extractCodeTabLabel } from "@/lib/utils/extract-code-tab-label";
 import { extractLeadingFileComment } from "@/lib/utils/extract-leading-file-comment";
 import { extractText } from "@/lib/utils/extract-text";
 import { parseCodeTabGroups } from "@/lib/utils/parse-code-tab-groups";
@@ -44,9 +45,11 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
   }): DocsCodeBlockEntry => {
     const { language, meta, code } = args;
     const fileLabelFromMeta = extractCodeFileLabel(meta);
+    const tabLabelFromMeta = extractCodeTabLabel(meta);
     const fromComment = extractLeadingFileComment(code);
     return {
       language,
+      tabLabel: tabLabelFromMeta ?? undefined,
       fileLabel: fileLabelFromMeta ?? fromComment.fileLabel ?? undefined,
       code: fromComment.code,
     };
