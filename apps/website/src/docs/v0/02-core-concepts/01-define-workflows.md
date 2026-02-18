@@ -13,6 +13,7 @@ The core contract lives in `@kortyx/core` and is exposed through `kortyx`.
 
 ```ts
 import { defineWorkflow } from "kortyx";
+import { google } from "@/lib/providers";
 import { classifyNode } from "@/nodes/classify.node";
 import { answerNode } from "@/nodes/answer.node";
 
@@ -23,7 +24,38 @@ export const supportWorkflow = defineWorkflow({
   nodes: {
     classify: {
       run: classifyNode,
-      params: { model: "google:gemini-2.5-flash" },
+      params: { model: google("gemini-2.5-flash") },
+      behavior: {
+        retry: { maxAttempts: 2, delayMs: 200 },
+      },
+    },
+    answer: {
+      run: answerNode,
+      params: {},
+    },
+  },
+  edges: [
+    ["__start__", "classify"],
+    ["classify", "answer", { when: "support.answer" }],
+    ["answer", "__end__"],
+  ],
+});
+```
+
+```js
+import { defineWorkflow } from "kortyx";
+import { google } from "@/lib/providers";
+import { classifyNode } from "@/nodes/classify.node";
+import { answerNode } from "@/nodes/answer.node";
+
+export const supportWorkflow = defineWorkflow({
+  id: "support",
+  version: "1.0.0",
+  description: "Simple support flow",
+  nodes: {
+    classify: {
+      run: classifyNode,
+      params: { model: google("gemini-2.5-flash") },
       behavior: {
         retry: { maxAttempts: 2, delayMs: 200 },
       },
@@ -85,4 +117,3 @@ if (!result.ok) {
   console.error(result.errors);
 }
 ```
-

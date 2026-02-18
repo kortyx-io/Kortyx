@@ -1,7 +1,7 @@
 ---
 id: v0-create-agent
 title: "createAgent"
-description: "Set up createAgent with strict declarative config and provider package loading."
+description: "Set up createAgent with strict workflow/runtime config and explicit provider wiring in nodes."
 keywords: [kortyx, createAgent, workflow-registry, config, runtime, strict]
 sidebar_label: "createAgent"
 ---
@@ -17,16 +17,27 @@ import { generalChatWorkflow } from "@/workflows/general-chat.workflow";
 
 export const agent = createAgent({
   workflows: [generalChatWorkflow],
-  ai: {
-    provider: "google",
-    apiKey: process.env.GOOGLE_API_KEY,
-  },
   session: {
     id: "anonymous-session",
   },
   fallbackWorkflowId: "general-chat",
 });
 ```
+
+```js
+import { createAgent } from "kortyx";
+import { generalChatWorkflow } from "@/workflows/general-chat.workflow";
+
+export const agent = createAgent({
+  workflows: [generalChatWorkflow],
+  session: {
+    id: "anonymous-session",
+  },
+  fallbackWorkflowId: "general-chat",
+});
+```
+
+> **Good to know:** `createAgent` no longer accepts `ai: {...}`. Initialize providers in app bootstrap and pass model refs inside node params.
 
 ## Workflow source resolution
 
@@ -43,12 +54,13 @@ Only one of `workflowRegistry`, `workflows`, or `workflowsDir` is allowed in the
 
 Useful fields in `CreateAgentArgs`:
 
-- `ai` (required)
+- `workflows` / `workflowRegistry` / `workflowsDir`
 - `session`
 - `memory`
 - `defaultWorkflowId`
 - `fallbackWorkflowId`
 - `frameworkAdapter`
+- `getProvider` (advanced: custom provider registry lookup)
 
 Result object:
 
