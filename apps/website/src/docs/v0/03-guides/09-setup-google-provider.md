@@ -38,12 +38,7 @@ import {
   PROVIDER_ID,
 } from "@kortyx/google";
 
-const googleApiKey =
-  process.env.GOOGLE_API_KEY ??
-  process.env.GEMINI_API_KEY ??
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-  process.env.KORTYX_GOOGLE_API_KEY ??
-  process.env.KORTYX_GEMINI_API_KEY;
+const googleApiKey = process.env.GOOGLE_API_KEY;
 
 let googleProvider: GoogleGenerativeAIProvider | undefined;
 
@@ -68,12 +63,7 @@ google.models = MODELS;
 // src/lib/providers.js
 import { createGoogleGenerativeAI, MODELS, PROVIDER_ID } from "@kortyx/google";
 
-const googleApiKey =
-  process.env.GOOGLE_API_KEY ??
-  process.env.GEMINI_API_KEY ??
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-  process.env.KORTYX_GOOGLE_API_KEY ??
-  process.env.KORTYX_GEMINI_API_KEY;
+const googleApiKey = process.env.GOOGLE_API_KEY;
 
 let googleProvider;
 

@@ -41,11 +41,3 @@ You still need provider credentials at runtime (for example Google):
 ```bash
 export GOOGLE_API_KEY=your_key_here
 ```
-
-Accepted by current provider setup:
-
-- `GOOGLE_API_KEY`
-- `GEMINI_API_KEY`
-- `GOOGLE_GENERATIVE_AI_API_KEY`
-- `KORTYX_GOOGLE_API_KEY`
-- `KORTYX_GEMINI_API_KEY`

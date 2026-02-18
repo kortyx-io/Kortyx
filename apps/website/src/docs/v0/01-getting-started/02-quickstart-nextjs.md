@@ -74,12 +74,7 @@ import {
   PROVIDER_ID,
 } from "@kortyx/google";
 
-const googleApiKey =
-  process.env.GOOGLE_API_KEY ??
-  process.env.GEMINI_API_KEY ??
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-  process.env.KORTYX_GOOGLE_API_KEY ??
-  process.env.KORTYX_GEMINI_API_KEY;
+const googleApiKey = process.env.GOOGLE_API_KEY;
 
 let googleProvider: GoogleGenerativeAIProvider | undefined;
 
@@ -87,7 +82,7 @@ export const ensureGoogleProvider = (): GoogleGenerativeAIProvider => {
   if (!googleProvider) {
     if (!googleApiKey) {
       throw new Error(
-        "Google provider requires an API key. Set GOOGLE_API_KEY, GEMINI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, KORTYX_GOOGLE_API_KEY, or KORTYX_GEMINI_API_KEY.",
+        "Google provider requires an API key. Set GOOGLE_API_KEY.",
       );
     }
     googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey });
@@ -110,12 +105,7 @@ import {
   PROVIDER_ID,
 } from "@kortyx/google";
 
-const googleApiKey =
-  process.env.GOOGLE_API_KEY ??
-  process.env.GEMINI_API_KEY ??
-  process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-  process.env.KORTYX_GOOGLE_API_KEY ??
-  process.env.KORTYX_GEMINI_API_KEY;
+const googleApiKey = process.env.GOOGLE_API_KEY;
 
 let googleProvider;
 
@@ -123,7 +113,7 @@ export const ensureGoogleProvider = () => {
   if (!googleProvider) {
     if (!googleApiKey) {
       throw new Error(
-        "Google provider requires an API key. Set GOOGLE_API_KEY, GEMINI_API_KEY, GOOGLE_GENERATIVE_AI_API_KEY, KORTYX_GOOGLE_API_KEY, or KORTYX_GEMINI_API_KEY.",
+        "Google provider requires an API key. Set GOOGLE_API_KEY.",
       );
     }
     googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey });
