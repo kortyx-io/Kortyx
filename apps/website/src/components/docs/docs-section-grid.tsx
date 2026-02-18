@@ -23,14 +23,14 @@ export function DocsSectionGrid(props: DocsSectionGridProps) {
       <div className="mt-8 grid grid-cols-1 gap-6 md:grid-cols-2">
         {items.map((item) => (
           <Link key={item.href} href={item.href}>
-            <Card className="h-full cursor-pointer transition-colors hover:bg-accent">
-              <CardHeader>
-                <CardTitle className="text-4xl font-semibold tracking-tight text-foreground">
+            <Card className="h-full gap-3 cursor-pointer transition-colors hover:bg-accent">
+              <CardHeader className="pb-0">
+                <CardTitle className="text-xl font-semibold tracking-tight text-foreground md:text-2xl">
                   {item.title}
                 </CardTitle>
               </CardHeader>
-              <CardContent>
-                <p className="text-2xl leading-9 text-foreground">
+              <CardContent className="pt-0">
+                <p className="text-base leading-7 text-foreground md:text-lg">
                   {item.description}
                 </p>
               </CardContent>

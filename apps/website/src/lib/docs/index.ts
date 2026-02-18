@@ -295,6 +295,25 @@ function toDocsPath(segments: string[]): string {
   return `/docs/${segments.join("/")}`;
 }
 
+function normalizeSlugPath(input: string): string {
+  return input.replace(/^\/+|\/+$/g, "");
+}
+
+function resolveLegacyDocSlug(version: string, slug: string): string {
+  const redirects = docsConfig.legacyRedirects[version];
+  if (!redirects) return normalizeSlugPath(slug);
+
+  let current = normalizeSlugPath(slug);
+  const seen = new Set<string>();
+
+  while (redirects[current] && !seen.has(current)) {
+    seen.add(current);
+    current = normalizeSlugPath(redirects[current] ?? "");
+  }
+
+  return current;
+}
+
 export async function getDocsVersions(): Promise<string[]> {
   const store = await getDocsStore();
   return store.versions;
@@ -315,8 +334,9 @@ export async function resolveDocsRoute(
     typeof first === "string" && store.versions.includes(first);
   const requestedVersion =
     explicitVersion && typeof first === "string" ? first : store.latestVersion;
-  const docSlugSegments = explicitVersion ? rest : routeSegments;
-  const docSlug = docSlugSegments.join("/");
+  const requestedDocSlug = (explicitVersion ? rest : routeSegments).join("/");
+  const docSlug = resolveLegacyDocSlug(requestedVersion, requestedDocSlug);
+  const docSlugSegments = docSlug ? docSlug.split("/").filter(Boolean) : [];
 
   const versionDocs = store.byVersion.get(requestedVersion);
   if (!versionDocs) return null;
@@ -512,6 +532,27 @@ export async function generateDocsStaticParams(): Promise<
         unique.set(
           explicitLatestSectionSegments.join("/"),
           explicitLatestSectionSegments,
+        );
+      }
+    }
+
+    const legacyRedirects = docsConfig.legacyRedirects[version] ?? {};
+    for (const fromSlug of Object.keys(legacyRedirects)) {
+      const normalizedFrom = normalizeSlugPath(fromSlug);
+      if (!normalizedFrom) continue;
+
+      const fromSegments = normalizedFrom.split("/").filter(Boolean);
+      const canonicalLegacySegments =
+        version === store.latestVersion
+          ? fromSegments
+          : [version, ...fromSegments];
+      unique.set(canonicalLegacySegments.join("/"), canonicalLegacySegments);
+
+      if (version === store.latestVersion) {
+        const explicitLatestLegacySegments = [version, ...fromSegments];
+        unique.set(
+          explicitLatestLegacySegments.join("/"),
+          explicitLatestLegacySegments,
         );
       }
     }

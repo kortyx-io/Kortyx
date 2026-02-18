@@ -76,19 +76,7 @@ Accepted `selected` shapes:
 - `{ choice: { id } }`
 - `{ choices: [{ id }, ...] }`
 
-## LangGraph replay behavior (important)
-
-When a run resumes, LangGraph replays the node function from the top. This is expected engine behavior.
-
-What this means:
-
-- `useReason` resumes from its internal checkpoint.
-- Code before `useReason` can run again unless you guard it.
-
-Recommended patterns:
-
-- Put `useReason` first in the node and avoid pre-`useReason` side effects.
-- If you need pre-events (for example lifecycle snapshots), guard them with `useNodeState` so they emit once.
+> **Good to know:** On resume, node code starts again from the top. `useReason` continues from its internal checkpoint, but code before `useReason` can run again unless you guard it. Prefer putting `useReason` first in the node and use `useNodeState` for pre-events that should emit once.
 
 ```ts
 const [startEmitted, setStartEmitted] = useNodeState("startEmitted", false);
@@ -109,4 +97,4 @@ Resume only works if the framework adapter persists pending requests + checkpoin
 - in-memory adapter: good for local dev, not restart-safe
 - redis adapter: recommended for production resume
 
-See [Framework Adapters](./04-framework-adapters.md).
+See [Framework Adapters](../04-production/02-framework-adapters.md).

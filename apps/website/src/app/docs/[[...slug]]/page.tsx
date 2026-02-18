@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound, redirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { DocsArticleNavigation } from "@/components/docs/docs-article-navigation";
 import { DocsBreadcrumbs } from "@/components/docs/docs-breadcrumbs";
 import { DocsMarkdownContent } from "@/components/docs/docs-markdown-content";
@@ -109,7 +109,7 @@ export default async function DocsPage({
   const resolved = await resolveDocsRoute(slug);
 
   if (!resolved) notFound();
-  if (resolved.redirectTo) redirect(resolved.redirectTo);
+  if (resolved.redirectTo) permanentRedirect(resolved.redirectTo);
 
   const versions = await getDocsVersions();
   const latestVersion = await getLatestDocsVersion();
@@ -141,6 +141,9 @@ export default async function DocsPage({
       ? buildDocHref(resolved.requestedVersion, currentDoc.slugSegments)
       : null;
   const markdownHref = isDocRoute ? `${resolved.canonicalPath}.md` : null;
+  const hasDistinctDocBreadcrumb =
+    Boolean(isDocRoute && currentDoc && currentDocHref) &&
+    currentDocHref !== currentSection?.href;
 
   const breadcrumbs = [
     { label: "Docs", href: buildDocHref(resolved.requestedVersion, []) },
@@ -152,7 +155,7 @@ export default async function DocsPage({
           },
         ]
       : []),
-    ...(isDocRoute && currentDoc && currentDocHref
+    ...(hasDistinctDocBreadcrumb && currentDoc && currentDocHref
       ? [
           {
             label: currentDoc.frontmatter.sidebarLabel,

@@ -128,14 +128,7 @@ const memory = useAiMemory();
 await memory.save("session-1", state);
 ```
 
-## LangGraph Replay Note
-
-LangGraph replays node code from the top on resume. `useReason` continues from its internal checkpoint, but any code placed before `useReason` runs again.
-
-Workarounds:
-
-- Prefer a minimal node where `useReason` is the first meaningful operation.
-- Guard pre-reason side effects with `useNodeState`.
+> **Good to know:** On resume, node code starts again from the top. `useReason` continues from its internal checkpoint, but code before `useReason` can run again. Keep `useReason` as the first meaningful operation and guard pre-`useReason` side effects with `useNodeState`.
 
 ```ts
 const [started, setStarted] = useNodeState("started", false);

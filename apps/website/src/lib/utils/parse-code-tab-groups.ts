@@ -24,6 +24,13 @@ function isJsTsLanguage(language: string): boolean {
   return ["js", "jsx", "ts", "tsx"].includes(language.toLowerCase());
 }
 
+function languageFamily(language: string): "js" | "ts" | null {
+  const lower = language.toLowerCase();
+  if (lower === "js" || lower === "jsx") return "js";
+  if (lower === "ts" || lower === "tsx") return "ts";
+  return null;
+}
+
 function parseGroupKey(meta: string | undefined): string | null {
   if (!meta) return null;
   const match = /(?:group|tabs)=["']?([a-zA-Z0-9._-]+)["']?/i.exec(meta);
@@ -77,12 +84,12 @@ function parseCodeBlocks(markdown: string): ParsedCodeBlock[] {
 export function parseCodeTabGroups(
   markdown: string,
 ): Map<number, CodeTabMatch> {
+  const markdownLines = markdown.split("\n");
   const blocks = parseCodeBlocks(markdown);
   const matches = new Map<number, CodeTabMatch>();
 
   const explicitGroups = new Map<string, ParsedCodeBlock[]>();
   for (const block of blocks) {
-    if (!isJsTsLanguage(block.language)) continue;
     const key = parseGroupKey(block.meta);
     if (!key) continue;
 
@@ -122,9 +129,25 @@ export function parseCodeTabGroups(
     if (!isJsTsLanguage(first.language) || !isJsTsLanguage(second.language))
       continue;
 
+    const betweenLines = markdownLines
+      .slice(first.endLine, second.startLine - 1)
+      .join("\n")
+      .trim();
+    if (betweenLines) continue;
+
     const firstLabel = extractCodeFileLabel(first.meta);
     const secondLabel = extractCodeFileLabel(second.meta);
-    if (!firstLabel || !secondLabel || firstLabel !== secondLabel) continue;
+    const hasMatchingLabels =
+      Boolean(firstLabel) && Boolean(secondLabel) && firstLabel === secondLabel;
+
+    const firstFamily = languageFamily(first.language);
+    const secondFamily = languageFamily(second.language);
+    const isTsJsPair =
+      Boolean(firstFamily) &&
+      Boolean(secondFamily) &&
+      firstFamily !== secondFamily;
+
+    if (!hasMatchingLabels && !isTsJsPair) continue;
 
     const entries: CodeTabEntry[] = [
       {

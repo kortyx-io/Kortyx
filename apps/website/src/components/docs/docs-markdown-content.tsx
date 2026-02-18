@@ -14,6 +14,7 @@ import {
 import { rewriteMarkdownHref } from "@/lib/docs";
 import { cn } from "@/lib/utils/cn";
 import { extractCodeFileLabel } from "@/lib/utils/extract-code-file-label";
+import { extractCodeTabLabel } from "@/lib/utils/extract-code-tab-label";
 import { extractLeadingFileComment } from "@/lib/utils/extract-leading-file-comment";
 import { extractText } from "@/lib/utils/extract-text";
 import { parseCodeTabGroups } from "@/lib/utils/parse-code-tab-groups";
@@ -44,9 +45,11 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
   }): DocsCodeBlockEntry => {
     const { language, meta, code } = args;
     const fileLabelFromMeta = extractCodeFileLabel(meta);
+    const tabLabelFromMeta = extractCodeTabLabel(meta);
     const fromComment = extractLeadingFileComment(code);
     return {
       language,
+      tabLabel: tabLabelFromMeta ?? undefined,
       fileLabel: fileLabelFromMeta ?? fromComment.fileLabel ?? undefined,
       code: fromComment.code,
     };
@@ -180,7 +183,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
         },
         pre: ({ children }: ComponentPropsWithoutRef<"pre">) => <>{children}</>,
         table: ({ children }: ComponentPropsWithoutRef<"table">) => (
-          <div className="my-8 overflow-x-auto rounded-xl border border-border">
+          <div className="docs-sidebar-scroll my-8 overflow-x-auto rounded-xl border border-border">
             <Table>{children}</Table>
           </div>
         ),
@@ -203,12 +206,21 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
             {children}
           </TableCell>
         ),
-        blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => (
-          <blockquote
-            {...props}
-            className="border-l-4 border-border pl-4 italic text-foreground"
-          />
-        ),
+        blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => {
+          const text = extractText(props.children).trim();
+          const isGoodToKnow = /^good to know:/i.test(text);
+
+          return (
+            <blockquote
+              {...props}
+              className={cn(
+                isGoodToKnow
+                  ? "my-6 rounded-lg border border-blue-300/70 bg-blue-50/70 px-4 py-3 text-foreground not-italic dark:border-blue-900/70 dark:bg-blue-950/30 [&_p]:my-0 [&_strong:first-child]:text-blue-800 dark:[&_strong:first-child]:text-blue-200"
+                  : "border-l-4 border-border pl-4 italic text-foreground",
+              )}
+            />
+          );
+        },
       }}
     >
       {content}

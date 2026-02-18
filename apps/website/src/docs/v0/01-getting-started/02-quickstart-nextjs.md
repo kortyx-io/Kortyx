@@ -1,7 +1,7 @@
 ---
 id: v0-quickstart-nextjs
 title: "Quickstart (Next.js)"
-description: "Build a working Next.js chat flow using Kortyx workflows, nodes, agent setup, and streaming."
+description: "Build a working Next.js chat flow using Kortyx workflows, node-level model wiring, and streaming."
 keywords: [kortyx, nextjs, quickstart, server-actions, streaming]
 sidebar_label: "Quickstart (Next.js)"
 ---
@@ -14,6 +14,7 @@ This quickstart matches the current OSS implementation and mirrors `examples/kor
 ```ts
 // src/workflows/general-chat.workflow.ts
 import { defineWorkflow } from "kortyx";
+import { google } from "@/lib/providers";
 import { chatNode } from "@/nodes/chat.node";
 
 export const generalChatWorkflow = defineWorkflow({
@@ -24,7 +25,7 @@ export const generalChatWorkflow = defineWorkflow({
     chat: {
       run: chatNode,
       params: {
-        model: "google:gemini-2.5-flash",
+        model: google("gemini-2.5-flash"),
         temperature: 0.3,
       },
     },
@@ -36,19 +37,131 @@ export const generalChatWorkflow = defineWorkflow({
 });
 ```
 
-## 2. Create a node
+```js
+// src/workflows/general-chat.workflow.js
+import { defineWorkflow } from "kortyx";
+import { google } from "@/lib/providers";
+import { chatNode } from "@/nodes/chat.node";
+
+export const generalChatWorkflow = defineWorkflow({
+  id: "general-chat",
+  version: "1.0.0",
+  description: "Single-node chat workflow",
+  nodes: {
+    chat: {
+      run: chatNode,
+      params: {
+        model: google("gemini-2.5-flash"),
+        temperature: 0.3,
+      },
+    },
+  },
+  edges: [
+    ["__start__", "chat"],
+    ["chat", "__end__"],
+  ],
+});
+```
+
+## 2. Initialize provider bootstrap
+
+```ts
+// src/lib/providers.ts
+import {
+  createGoogleGenerativeAI,
+  type GoogleGenerativeAIProvider,
+  MODELS,
+  PROVIDER_ID,
+} from "@kortyx/google";
+
+const googleApiKey = process.env.GOOGLE_API_KEY;
+
+let googleProvider: GoogleGenerativeAIProvider | undefined;
+
+export const ensureGoogleProvider = (): GoogleGenerativeAIProvider => {
+  if (!googleProvider) {
+    if (!googleApiKey) {
+      throw new Error(
+        "Google provider requires an API key. Set GOOGLE_API_KEY.",
+      );
+    }
+    googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey });
+  }
+  return googleProvider;
+};
+
+export const google: GoogleGenerativeAIProvider = ((modelId, options) =>
+  ensureGoogleProvider()(modelId, options)) as GoogleGenerativeAIProvider;
+
+google.id = PROVIDER_ID;
+google.models = MODELS;
+```
+
+```js
+// src/lib/providers.js
+import {
+  createGoogleGenerativeAI,
+  MODELS,
+  PROVIDER_ID,
+} from "@kortyx/google";
+
+const googleApiKey = process.env.GOOGLE_API_KEY;
+
+let googleProvider;
+
+export const ensureGoogleProvider = () => {
+  if (!googleProvider) {
+    if (!googleApiKey) {
+      throw new Error(
+        "Google provider requires an API key. Set GOOGLE_API_KEY.",
+      );
+    }
+    googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey });
+  }
+  return googleProvider;
+};
+
+export const google = (modelId, options) =>
+  ensureGoogleProvider()(modelId, options);
+
+google.id = PROVIDER_ID;
+google.models = MODELS;
+```
+
+## 3. Create a node
 
 ```ts
 // src/nodes/chat.node.ts
-import { useAiProvider } from "kortyx";
+import type { ProviderModelRef } from "kortyx";
+import { useReason } from "kortyx";
+import { google } from "@/lib/providers";
 
-export const chatNode = async ({ input, params }: { input: unknown; params: { model?: string; temperature?: number } }) => {
-  const model = useAiProvider(params.model ?? "google:gemini-2.5-flash");
+export type ChatNodeParams = {
+  model?: ProviderModelRef;
+  temperature?: number;
+  system?: string;
+};
 
-  const res = await model.call({
-    prompt: String(input ?? ""),
-    temperature: params.temperature ?? 0.3,
-    system: "You are a concise assistant.",
+export const chatNode = async ({
+  input,
+  params,
+}: {
+  input: unknown;
+  params: ChatNodeParams;
+}) => {
+  const {
+    model = google("gemini-2.5-flash"),
+    temperature = 0.3,
+    system = "",
+  } = params;
+
+  const res = await useReason({
+    model,
+    system: system || "You are a concise assistant.",
+    input: String(input ?? ""),
+    temperature,
+    emit: true,
+    stream: true,
   });
 
   return {
@@ -58,7 +171,35 @@ export const chatNode = async ({ input, params }: { input: unknown; params: { mo
 };
 ```
 
-## 3. Wire an agent
+```js
+// src/nodes/chat.node.js
+import { useReason } from "kortyx";
+import { google } from "@/lib/providers";
+
+export const chatNode = async ({ input, params }) => {
+  const {
+    model = google("gemini-2.5-flash"),
+    temperature = 0.3,
+    system = "",
+  } = params ?? {};
+
+  const res = await useReason({
+    model,
+    system: system || "You are a concise assistant.",
+    input: String(input ?? ""),
+    temperature,
+    emit: true,
+    stream: true,
+  });
+
+  return {
+    data: { text: res.text },
+    ui: { message: res.text },
+  };
+};
+```
+
+## 4. Wire an agent
 
 ```ts
 // src/lib/kortyx-client.ts
@@ -67,15 +208,6 @@ import { generalChatWorkflow } from "@/workflows/general-chat.workflow";
 
 export const agent = createAgent({
   workflows: [generalChatWorkflow],
-  ai: {
-    provider: "google",
-    apiKey:
-      process.env.GOOGLE_API_KEY ??
-      process.env.GEMINI_API_KEY ??
-      process.env.GOOGLE_GENERATIVE_AI_API_KEY ??
-      process.env.KORTYX_GOOGLE_API_KEY ??
-      process.env.KORTYX_GEMINI_API_KEY,
-  },
   session: {
     id: "anonymous-session",
   },
@@ -83,7 +215,21 @@ export const agent = createAgent({
 });
 ```
 
-## 4. Call `processChat`
+```js
+// src/lib/kortyx-client.js
+import { createAgent } from "kortyx";
+import { generalChatWorkflow } from "@/workflows/general-chat.workflow";
+
+export const agent = createAgent({
+  workflows: [generalChatWorkflow],
+  session: {
+    id: "anonymous-session",
+  },
+  fallbackWorkflowId: "general-chat",
+});
+```
+
+## 5. Call `processChat`
 
 ```ts
 // src/app/actions/chat.ts
@@ -108,19 +254,53 @@ export async function runChat(args: {
 }
 ```
 
-## 5. Run
+```js
+// src/app/actions/chat.js
+"use server";
 
-```bash
+import { readStream } from "kortyx";
+import { agent } from "@/lib/kortyx-client";
+
+export async function runChat(args) {
+  const response = await agent.processChat(args.messages, {
+    sessionId: args.sessionId,
+  });
+
+  const chunks = [];
+  for await (const chunk of readStream(response.body)) {
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+```
+
+## 6. Run
+
+```bash tabs="run-dev" tab="pnpm"
 GOOGLE_API_KEY=your_key_here pnpm dev
+```
+
+```bash tabs="run-dev" tab="npm"
+GOOGLE_API_KEY=your_key_here npm run dev
+```
+
+```bash tabs="run-dev" tab="yarn"
+GOOGLE_API_KEY=your_key_here yarn dev
+```
+
+```bash tabs="run-dev" tab="bun"
+GOOGLE_API_KEY=your_key_here bun run dev
 ```
 
 ## What this gives you
 
 - Type-safe workflow definition
+- Explicit provider bootstrap at app level
+- Node-level model control via `useReason(...)`
 - Streaming chunks (`text-start`, `text-delta`, `text-end`, `message`, `done`)
 - Built-in interrupt/resume path when your nodes use `useInterrupt`
 
 Next:
 
-- [Hooks](../03-runtime/01-hooks.md)
-- [Interrupts and Resume](../03-runtime/02-interrupts-and-resume.md)
+- [Hooks](../02-core-concepts/06-hooks.md)
+- [Interrupts and Resume](../03-guides/02-interrupts-and-resume.md)

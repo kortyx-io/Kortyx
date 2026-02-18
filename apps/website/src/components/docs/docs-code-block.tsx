@@ -13,6 +13,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 export type DocsCodeBlockEntry = {
   language: string;
   code: string;
+  tabLabel?: string;
   fileLabel?: string;
 };
 
@@ -40,7 +41,7 @@ const accessibleOneDark = {
   },
 };
 
-function tabLabel(language: string): string {
+function defaultTabLabel(language: string): string {
   const lower = language.toLowerCase();
   if (lower === "ts" || lower === "tsx") return "TS";
   if (lower === "js" || lower === "jsx") return "JS";
@@ -49,6 +50,7 @@ function tabLabel(language: string): string {
 
 export function DocsCodeBlock(props: DocsCodeBlockProps) {
   const { entries } = props;
+  const isSingleEntry = entries.length === 1;
   const tabValues = useMemo(
     () => entries.map((_, index) => `tab-${index}`),
     [entries],
@@ -89,25 +91,21 @@ export function DocsCodeBlock(props: DocsCodeBlockProps) {
   return (
     <div className="my-4 rounded-md border border-border bg-muted dark:border-zinc-800 dark:bg-zinc-950">
       <div className="flex items-center justify-between gap-4 border-b border-border px-4 py-3 dark:border-zinc-800">
-        {entries.length > 1 ? (
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="h-8 border bg-accent dark:border-zinc-600 dark:bg-zinc-800/60">
-              {entries.map((entry, index) => (
-                <TabsTrigger
-                  key={`${entry.language}-${tabValues[index]}`}
-                  value={tabValues[index] ?? `tab-${index}`}
-                  className="h-7 cursor-pointer px-3 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground dark:data-[state=active]:bg-zinc-900 dark:data-[state=active]:text-white"
-                >
-                  {tabLabel(entry.language)}
-                </TabsTrigger>
-              ))}
-            </TabsList>
-          </Tabs>
-        ) : (
-          <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase text-foreground dark:bg-zinc-200 dark:text-zinc-900">
-            {tabLabel(activeEntry.language)}
-          </span>
-        )}
+        <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <TabsList className="h-8 border bg-accent dark:border-zinc-600 dark:bg-zinc-800/60">
+            {entries.map((entry, index) => (
+              <TabsTrigger
+                key={`${entry.language}-${tabValues[index]}`}
+                value={tabValues[index] ?? `tab-${index}`}
+                className={`h-7 px-3 text-xs data-[state=active]:bg-background data-[state=active]:text-foreground dark:data-[state=active]:bg-zinc-900 dark:data-[state=active]:text-white ${
+                  isSingleEntry ? "cursor-default" : "cursor-pointer"
+                }`}
+              >
+                {entry.tabLabel ?? defaultTabLabel(entry.language)}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+        </Tabs>
 
         <div className="flex min-w-0 items-center gap-2">
           {activeEntry.fileLabel ? (
