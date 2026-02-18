@@ -183,7 +183,7 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
         },
         pre: ({ children }: ComponentPropsWithoutRef<"pre">) => <>{children}</>,
         table: ({ children }: ComponentPropsWithoutRef<"table">) => (
-          <div className="my-8 overflow-x-auto rounded-xl border border-border">
+          <div className="docs-sidebar-scroll my-8 overflow-x-auto rounded-xl border border-border">
             <Table>{children}</Table>
           </div>
         ),
@@ -206,12 +206,21 @@ export function DocsMarkdownContent(props: DocsMarkdownContentProps) {
             {children}
           </TableCell>
         ),
-        blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => (
-          <blockquote
-            {...props}
-            className="border-l-4 border-border pl-4 italic text-foreground"
-          />
-        ),
+        blockquote: (props: ComponentPropsWithoutRef<"blockquote">) => {
+          const text = extractText(props.children).trim();
+          const isGoodToKnow = /^good to know:/i.test(text);
+
+          return (
+            <blockquote
+              {...props}
+              className={cn(
+                isGoodToKnow
+                  ? "my-6 rounded-lg border border-blue-300/70 bg-blue-50/70 px-4 py-3 text-foreground not-italic dark:border-blue-900/70 dark:bg-blue-950/30 [&_p]:my-0 [&_strong:first-child]:text-blue-800 dark:[&_strong:first-child]:text-blue-200"
+                  : "border-l-4 border-border pl-4 italic text-foreground",
+              )}
+            />
+          );
+        },
       }}
     >
       {content}
