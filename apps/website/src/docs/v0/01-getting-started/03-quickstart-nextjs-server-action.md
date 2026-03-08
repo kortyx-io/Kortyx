@@ -1,13 +1,15 @@
 ---
-id: v0-quickstart-nextjs-api-route
-title: "Quickstart (Next.js API Route)"
-description: "Build a working Next.js chat flow using API routes, Kortyx workflows, node-level model wiring, and streaming."
-keywords: [kortyx, nextjs, quickstart, api-route, streaming]
-sidebar_label: "Quickstart (Next.js API Route)"
+id: v0-quickstart-nextjs-server-action
+title: "Quickstart (Next.js Server Action)"
+description: "Build a working Next.js chat flow using server actions, Kortyx workflows, and node-level model wiring with buffered chunk handling."
+keywords: [kortyx, nextjs, quickstart, server-actions, buffered, chunks]
+sidebar_label: "Quickstart (Next.js Server Action)"
 ---
-# Quickstart (Next.js API Route)
+# Quickstart (Next.js Server Action)
 
-This quickstart matches the current OSS implementation and mirrors `examples/kortyx-nextjs-chat-api-route`.
+This quickstart matches the current OSS implementation and mirrors `examples/kortyx-nextjs-chat-server-action`.
+
+> **Good to know:** As of Next.js 16.1.6 (March 8, 2026), Server Actions return after completion and do not stream chunk updates to client UI in real time. For live token/chunk rendering, use [Quickstart (Next.js API Route)](./02-quickstart-nextjs.md).
 
 ## 1. Create a workflow
 
@@ -190,85 +192,56 @@ export const agent = createAgent({
 });
 ```
 
-## 5. Add an API route
+## 5. Call `processChat`
 
 ```ts
-// src/app/api/chat/route.ts
-import { createChatRouteHandler } from "kortyx";
+// src/app/actions/chat.ts
+"use server";
+
+import { consumeStream, readStream, type StreamChunk } from "kortyx";
 import { agent } from "@/lib/kortyx-client";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const handleChat = createChatRouteHandler({ agent });
-
-export async function POST(request: Request): Promise<Response> {
-  return handleChat(request);
-}
-```
-
-```js
-// src/app/api/chat/route.js
-import { createChatRouteHandler } from "kortyx";
-import { agent } from "@/lib/kortyx-client";
-
-export const runtime = "nodejs";
-export const dynamic = "force-dynamic";
-
-const handleChat = createChatRouteHandler({ agent });
-
-export async function POST(request) {
-  return handleChat(request);
-}
-```
-
-## 6. Call `/api/chat` from client code
-
-```ts
-// src/lib/chat-client.ts
-import { streamChatFromRoute, type StreamChunk } from "kortyx";
 
 export async function runChat(args: {
   sessionId: string;
-  workflowId?: string;
   messages: Array<{ role: "user" | "assistant" | "system"; content: string }>;
 }): Promise<StreamChunk[]> {
-  const stream = streamChatFromRoute({
-    endpoint: "/api/chat",
+  const response = await agent.processChat(args.messages, {
     sessionId: args.sessionId,
-    ...(args.workflowId ? { workflowId: args.workflowId } : {}),
-    messages: args.messages,
   });
 
   const chunks: StreamChunk[] = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
+  await consumeStream(readStream(response.body), {
+    onChunk: (chunk) => {
+      chunks.push(chunk);
+    },
+  });
   return chunks;
 }
 ```
 
 ```js
-// src/lib/chat-client.js
-import { streamChatFromRoute } from "kortyx";
+// src/app/actions/chat.js
+"use server";
+
+import { consumeStream, readStream } from "kortyx";
+import { agent } from "@/lib/kortyx-client";
 
 export async function runChat(args) {
-  const stream = streamChatFromRoute({
-    endpoint: "/api/chat",
+  const response = await agent.processChat(args.messages, {
     sessionId: args.sessionId,
-    ...(args.workflowId ? { workflowId: args.workflowId } : {}),
-    messages: args.messages,
   });
 
   const chunks = [];
-  for await (const chunk of stream) {
-    chunks.push(chunk);
-  }
+  await consumeStream(readStream(response.body), {
+    onChunk: (chunk) => {
+      chunks.push(chunk);
+    },
+  });
   return chunks;
 }
 ```
 
-## 7. Run
+## 6. Run
 
 ```bash tabs="run-dev" tab="pnpm"
 GOOGLE_API_KEY=your_key_here pnpm dev
@@ -291,8 +264,8 @@ GOOGLE_API_KEY=your_key_here bun run dev
 - Type-safe workflow definition
 - Explicit provider bootstrap at app level
 - Node-level model control via `useReason(...)`
-- API-route transport with `streamChatFromRoute(...)`
-- Streaming chunks (`text-start`, `text-delta`, `text-end`, `message`, `done`)
+- Buffered chunk collection through a Server Action return value
+- Chunk event types in the buffered result (`text-start`, `text-delta`, `text-end`, `message`, `done`)
 - Built-in interrupt/resume path when your nodes use `useInterrupt`
 
 Next:

@@ -40,6 +40,8 @@ export const docsConfig: DocsConfig = {
       "packages/package-overview": "reference/package-overview",
       "packages/api-surface": "reference/api-surface",
       "getting-started/documentation-structure-and-dx": "getting-started",
+      "getting-started/quickstart-nextjs-api-route":
+        "getting-started/quickstart-nextjs",
       "start-here/start-here": "start-here",
       "troubleshooting/troubleshooting": "troubleshooting",
       "migration/migration-and-versions": "migration",

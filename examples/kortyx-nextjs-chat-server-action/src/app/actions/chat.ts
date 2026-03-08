@@ -1,6 +1,6 @@
 "use server";
 
-import { readStream, type StreamChunk } from "kortyx";
+import { consumeStream, readStream, type StreamChunk } from "kortyx";
 import { agent } from "@/lib/kortyx-client";
 
 export async function runChat(args: {
@@ -18,8 +18,10 @@ export async function runChat(args: {
   });
 
   const chunks: StreamChunk[] = [];
-  for await (const chunk of readStream(response.body)) {
-    chunks.push(chunk);
-  }
+  await consumeStream(readStream(response.body), {
+    onChunk: (chunk) => {
+      chunks.push(chunk);
+    },
+  });
   return chunks;
 }
