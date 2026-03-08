@@ -31,57 +31,26 @@ bun add @kortyx/google
 
 ```ts
 // src/lib/providers.ts
-import {
-  createGoogleGenerativeAI,
-  type GoogleGenerativeAIProvider,
-  MODELS,
-  PROVIDER_ID,
-} from "@kortyx/google";
+import { createGoogleGenerativeAI } from "@kortyx/google";
 
 const googleApiKey = process.env.GOOGLE_API_KEY;
+if (!googleApiKey) {
+  throw new Error("Google provider requires an API key. Set GOOGLE_API_KEY.");
+}
 
-let googleProvider: GoogleGenerativeAIProvider | undefined;
-
-export const ensureGoogleProvider = (): GoogleGenerativeAIProvider => {
-  if (!googleProvider) {
-    if (!googleApiKey) {
-      throw new Error("Missing Google provider API key.");
-    }
-    googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey });
-  }
-  return googleProvider;
-};
-
-export const google: GoogleGenerativeAIProvider = ((modelId, options) =>
-  ensureGoogleProvider()(modelId, options)) as GoogleGenerativeAIProvider;
-
-google.id = PROVIDER_ID;
-google.models = MODELS;
+export const google = createGoogleGenerativeAI({ apiKey: googleApiKey });
 ```
 
 ```js
 // src/lib/providers.js
-import { createGoogleGenerativeAI, MODELS, PROVIDER_ID } from "@kortyx/google";
+import { createGoogleGenerativeAI } from "@kortyx/google";
 
 const googleApiKey = process.env.GOOGLE_API_KEY;
+if (!googleApiKey) {
+  throw new Error("Google provider requires an API key. Set GOOGLE_API_KEY.");
+}
 
-let googleProvider;
-
-export const ensureGoogleProvider = () => {
-  if (!googleProvider) {
-    if (!googleApiKey) {
-      throw new Error("Missing Google provider API key.");
-    }
-    googleProvider = createGoogleGenerativeAI({ apiKey: googleApiKey });
-  }
-  return googleProvider;
-};
-
-export const google = (modelId, options) =>
-  ensureGoogleProvider()(modelId, options);
-
-google.id = PROVIDER_ID;
-google.models = MODELS;
+export const google = createGoogleGenerativeAI({ apiKey: googleApiKey });
 ```
 
 ## 3. Use model refs in workflow/node params
