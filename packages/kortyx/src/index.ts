@@ -5,7 +5,6 @@ export type {
   Agent,
   AgentMemoryConfig,
   AgentProcessOptions,
-  AgentSessionConfig,
   ChatRequestBody,
   CreateAgentArgs,
   ProcessChatArgs,
@@ -39,7 +38,6 @@ export type {
 } from "@kortyx/hooks";
 export {
   useAiMemory,
-  useEmit,
   useInterrupt,
   useNodeState,
   useReason,

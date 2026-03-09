@@ -1,8 +1,4 @@
-import type {
-  InterruptInput,
-  InterruptResult,
-  NodeContext,
-} from "@kortyx/core";
+import type { InterruptInput, InterruptResult } from "@kortyx/core";
 import type { MemoryAdapter } from "@kortyx/memory";
 import { getHookContext } from "./context";
 import { awaitInterruptInternal } from "./interrupt";
@@ -28,11 +24,6 @@ export type {
 } from "./types";
 
 type StateSetter<T> = (next: T | ((prev: T) => T)) => void;
-
-export function useEmit(): NodeContext["emit"] {
-  const ctx = getHookContext();
-  return ctx.node.emit;
-}
 
 export function useStructuredData<TData = unknown>(
   args: UseStructuredDataArgs<TData>,
@@ -65,42 +56,13 @@ export function useInterrupt<
   return awaitInterruptInternal(args);
 }
 
-export function useNodeState<T>(initialValue: T): [T, StateSetter<T>];
-export function useNodeState<T>(
-  key: string,
-  initialValue?: T,
-): [T, StateSetter<T>];
-export function useNodeState<T>(
-  keyOrInitial: string | T,
-  initialValue?: T,
-): [T, StateSetter<T>] {
+export function useNodeState<T>(initialValue: T): [T, StateSetter<T>] {
   const ctx = getHookContext();
   const nodeState = ctx.currentNodeState;
 
-  if (typeof keyOrInitial === "string") {
-    const key = keyOrInitial;
-    const hasInitial = arguments.length > 1;
-
-    if (!Object.hasOwn(nodeState.byKey, key) && hasInitial) {
-      nodeState.byKey[key] = initialValue as T;
-      ctx.dirty = true;
-    }
-
-    const getValue = () => nodeState.byKey[key] as T;
-    const setValue: StateSetter<T> = (next) => {
-      const prev = getValue();
-      const resolved =
-        typeof next === "function" ? (next as (p: T) => T)(prev) : next;
-      nodeState.byKey[key] = resolved;
-      ctx.dirty = true;
-    };
-
-    return [getValue(), setValue];
-  }
-
   const index = ctx.nodeStateIndex++;
   if (index >= nodeState.byIndex.length) {
-    nodeState.byIndex[index] = keyOrInitial as T;
+    nodeState.byIndex[index] = initialValue as T;
     ctx.dirty = true;
   }
 

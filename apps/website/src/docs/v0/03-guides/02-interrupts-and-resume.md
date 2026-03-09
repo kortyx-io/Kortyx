@@ -79,7 +79,7 @@ Accepted `selected` shapes:
 > **Good to know:** On resume, node code starts again from the top. `useReason` continues from its internal checkpoint, but code before `useReason` can run again unless you guard it. Prefer putting `useReason` first in the node and use `useNodeState` for pre-events that should emit once.
 
 ```ts
-const [startEmitted, setStartEmitted] = useNodeState("startEmitted", false);
+const [startEmitted, setStartEmitted] = useNodeState(false);
 
 if (!startEmitted) {
   useStructuredData({ dataType: "lifecycle", mode: "snapshot", data: { step: "start" } });
@@ -96,5 +96,6 @@ Resume only works if the framework adapter persists pending requests + checkpoin
 
 - in-memory adapter: good for local dev, not restart-safe
 - redis adapter: recommended for production resume
+- hook state (`useNodeState` / `useWorkflowState`) follows the same checkpoint lifetime and limits
 
 See [Framework Adapters](../04-production/02-framework-adapters.md).
