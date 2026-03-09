@@ -43,28 +43,28 @@ describe("state hooks", () => {
     expect(secondRun.result).toEqual({ count: 1, ready: true });
   });
 
-  it("persists keyed useNodeState values across runs", async () => {
+  it("persists object useNodeState values across runs", async () => {
     const { node } = createNode();
     const firstState = createState();
 
     const firstRun = await runWithHookContext(
       { node, state: firstState },
       async () => {
-        const [cursor, setCursor] = useNodeState("cursor", 0);
-        setCursor(cursor + 2);
-        return cursor;
+        const [state, setState] = useNodeState({ cursor: 0 });
+        setState((prev) => ({ ...prev, cursor: prev.cursor + 2 }));
+        return state.cursor;
       },
     );
 
     expect(firstRun.result).toBe(0);
-    const byKey = (
+    const byIndex = (
       firstRun.memoryUpdates as {
         __kortyx?: {
-          nodeState?: { state?: { byKey?: Record<string, unknown> } };
+          nodeState?: { state?: { byIndex?: unknown[] } };
         };
       }
-    ).__kortyx?.nodeState?.state?.byKey;
-    expect(byKey?.cursor).toBe(2);
+    ).__kortyx?.nodeState?.state?.byIndex;
+    expect(byIndex?.[0]).toEqual({ cursor: 2 });
 
     const secondState = createState(
       (firstRun.memoryUpdates ?? {}) as Record<string, unknown>,
@@ -73,8 +73,8 @@ describe("state hooks", () => {
     const secondRun = await runWithHookContext(
       { node, state: secondState },
       async () => {
-        const [cursor] = useNodeState("cursor", 0);
-        return cursor;
+        const [state] = useNodeState({ cursor: 0 });
+        return state.cursor;
       },
     );
 

@@ -93,12 +93,6 @@ Node-local state:
 const [idx, setIdx] = useNodeState(0);
 ```
 
-Or keyed node-local state:
-
-```ts
-const [cursor, setCursor] = useNodeState("cursor", 0);
-```
-
 Workflow-shared state:
 
 ```ts
@@ -131,7 +125,7 @@ await memory.save("session-1", state);
 > **Good to know:** On resume, node code starts again from the top. `useReason` continues from its internal checkpoint, but code before `useReason` can run again. Keep `useReason` as the first meaningful operation and guard pre-`useReason` side effects with `useNodeState`.
 
 ```ts
-const [started, setStarted] = useNodeState("started", false);
+const [started, setStarted] = useNodeState(false);
 
 if (!started) {
   useStructuredData({ dataType: "lifecycle", mode: "snapshot", data: { step: "start" } });
