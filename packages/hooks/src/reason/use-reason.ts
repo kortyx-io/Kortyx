@@ -11,7 +11,7 @@ import { parseWithSchema } from "../validation";
 import {
   type ReasonInterruptCheckpoint,
   readReasonCheckpoint,
-  resolveHookMemoryPatch,
+  resolveHookStatePatch,
   resolveReasonCheckpointKey,
 } from "./checkpoint";
 import { createRuntimeId, reasonEngine } from "./engine";
@@ -186,7 +186,7 @@ export async function useReason<
       ctx.dirty = true;
     }
 
-    const resumeMemoryPatch = resolveHookMemoryPatch({
+    const resumeStatePatch = resolveHookStatePatch({
       nodeId: ctx.node.graph.node,
       currentNodeState: ctx.currentNodeState,
       workflowState: ctx.workflowState,
@@ -202,7 +202,7 @@ export async function useReason<
         : {}),
       ...(id ? { id } : {}),
       meta: {
-        __kortyxResumeMemory: resumeMemoryPatch,
+        __kortyxResumeStatePatch: resumeStatePatch,
       },
     });
 

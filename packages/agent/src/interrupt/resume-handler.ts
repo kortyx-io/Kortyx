@@ -109,8 +109,8 @@ export async function tryPrepareResumeStream({
 
   const resumeDataPatch = isRecord(resumeData) ? resumeData : {};
   const pendingMeta = isRecord(pending.schema?.meta) ? pending.schema.meta : {};
-  const resumeMemoryPatch = isRecord(pendingMeta.__kortyxResumeMemory)
-    ? pendingMeta.__kortyxResumeMemory
+  const resumeStatePatch = isRecord(pendingMeta.__kortyxResumeStatePatch)
+    ? pendingMeta.__kortyxResumeStatePatch
     : undefined;
 
   const pendingData = isRecord(pending.state?.data) ? pending.state?.data : {};
@@ -128,7 +128,7 @@ export async function tryPrepareResumeStream({
     lastNode: "__start__",
     currentWorkflow: workflowId,
     config,
-    memory: {},
+    runtime: {},
     conversationHistory: [],
     awaitingHumanInput: false,
     data: {
@@ -145,8 +145,8 @@ export async function tryPrepareResumeStream({
       ...resumeDataPatch,
     };
   }
-  if (resumeMemoryPatch) {
-    resumeUpdate.memory = resumeMemoryPatch;
+  if (resumeStatePatch) {
+    resumeUpdate.runtime = resumeStatePatch;
   }
   const hasResumeUpdate = Object.keys(resumeUpdate).length > 0;
   const resumeValue =

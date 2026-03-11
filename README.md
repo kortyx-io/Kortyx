@@ -20,7 +20,6 @@ pnpm build
 - `packages/runtime`: runtime/orchestrator wiring
 - `packages/agent`: agent composition utilities
 - `packages/providers`: LLM/provider integrations
-- `packages/memory`: memory/state interfaces and implementations
 - `packages/hooks`: lifecycle hooks and extensions
 - `packages/stream`: streaming primitives
 - `packages/utils`: shared utilities

@@ -1,13 +1,13 @@
 ---
 id: v0-runtime-persistence-boundary
 title: "Persistence Boundary"
-description: "Understand the split between framework persistence and business memory in Kortyx."
-keywords: [kortyx, persistence, framework-adapter, memory-adapter, resume]
+description: "Understand what Kortyx persists for runtime control and what your app should persist itself."
+keywords: [kortyx, persistence, framework-adapter, resume]
 sidebar_label: "Persistence Boundary"
 ---
 # Persistence Boundary
 
-Kortyx currently has two separate persistence concerns.
+There are two separate concerns here, but only one is Kortyx-owned.
 
 ## 1. Framework persistence (runtime internals)
 
@@ -18,19 +18,18 @@ Used for:
 
 Configured through framework adapters (`createFrameworkAdapterFromEnv`, `createInMemoryFrameworkAdapter`, `createRedisFrameworkAdapter`).
 
-## 2. Business memory (your app data)
+## 2. App persistence (your product data)
 
-Used only when nodes call `useAiMemory()` and your agent is configured with `memoryAdapter`.
+Used for:
 
-Typical use:
-
-- conversation memory
-- profile state
-- app-specific context
+- conversation records
+- customer/profile state
+- app-specific business context
 
 ## Important current behavior
 
-- agent does **not** auto-save business memory every run
-- business memory and framework persistence are intentionally separate
+- Kortyx owns framework persistence only
+- business/application persistence should live in your app DB or service layer
 - framework state is keyed by run/session context and TTL-driven
 
+> **Good to know:** If you need long-lived product data in a node, call your own persistence layer directly. Do not treat runtime checkpoint state as an app data store.

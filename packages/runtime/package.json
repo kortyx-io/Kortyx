@@ -42,7 +42,6 @@
     "@kortyx/stream": "workspace:*",
     "@kortyx/core": "workspace:*",
     "@kortyx/hooks": "workspace:*",
-    "@kortyx/memory": "workspace:*",
     "@kortyx/providers": "workspace:*",
     "@kortyx/utils": "workspace:*",
     "@langchain/core": "^1.0.1",

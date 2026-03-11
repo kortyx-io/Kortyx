@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import type { WorkflowDefinition } from "@kortyx/core";
-import { createInMemoryAdapter, type MemoryAdapter } from "@kortyx/memory";
 import {
   type GetProviderFn,
   getProvider as getRegisteredProvider,
@@ -16,12 +15,6 @@ import { z } from "zod";
 import type { ChatMessage } from "../types/chat-message";
 import { streamChat as runStreamChat } from "./process-chat";
 
-export interface AgentMemoryConfig {
-  enabled?: boolean | undefined;
-  namespace?: string | undefined;
-  ttlMs?: number | undefined;
-}
-
 export interface AgentProcessOptions {
   sessionId?: string | undefined;
   workflowId?: string | undefined;
@@ -34,7 +27,6 @@ export interface CreateAgentArgs {
   workflowRegistry?: WorkflowRegistry;
   defaultWorkflowId?: string;
   frameworkAdapter?: FrameworkAdapter;
-  memory?: AgentMemoryConfig;
 }
 
 export interface Agent {
@@ -59,14 +51,6 @@ const createAgentArgsBaseSchema = z
     workflowRegistry: z.unknown().optional(),
     defaultWorkflowId: z.string().optional(),
     frameworkAdapter: z.unknown().optional(),
-    memory: z
-      .object({
-        enabled: z.boolean().optional(),
-        namespace: z.string().optional(),
-        ttlMs: z.number().finite().positive().optional(),
-      })
-      .strict()
-      .optional(),
   })
   .strict();
 
@@ -116,17 +100,6 @@ const parseAgentProcessOptions = (
   return parseSchema(agentProcessOptionsSchema, value);
 };
 
-const resolveMemoryAdapter = (
-  memory: AgentMemoryConfig | undefined,
-): MemoryAdapter | undefined => {
-  if (memory?.enabled === false) return undefined;
-
-  return createInMemoryAdapter({
-    namespace: memory?.namespace ?? "kortyx-agent",
-    ttlMs: memory?.ttlMs ?? 1000 * 60 * 60,
-  });
-};
-
 export function createAgent(args: CreateAgentArgs): Agent {
   const parsedArgs = parseCreateAgentArgs(args);
 
@@ -137,13 +110,11 @@ export function createAgent(args: CreateAgentArgs): Agent {
     workflowRegistry,
     defaultWorkflowId,
     frameworkAdapter,
-    memory,
   } = parsedArgs;
 
   const resolvedDefaultWorkflowId = defaultWorkflowId;
   const resolvedFrameworkAdapter: FrameworkAdapter =
     frameworkAdapter ?? createFrameworkAdapterFromEnv();
-  const memoryAdapter = resolveMemoryAdapter(memory);
   const resolvedGetProvider = getProvider ?? getRegisteredProvider;
 
   const resolvedCwd = process.cwd();
@@ -191,7 +162,6 @@ export function createAgent(args: CreateAgentArgs): Agent {
       workflowRegistry: registry,
       frameworkAdapter: resolvedFrameworkAdapter,
       getProvider: resolvedGetProvider,
-      ...(memoryAdapter ? { memoryAdapter } : {}),
       loadRuntimeConfig: (runtimeOptions?: AgentProcessOptions) =>
         runtimeOptions?.sessionId
           ? {

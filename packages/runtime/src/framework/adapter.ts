@@ -9,7 +9,7 @@ import { createRedisCheckpointSaver } from "./redis/redis-checkpointer";
 import { createRedisFrameworkStore } from "./redis/redis-store";
 
 export type FrameworkAdapter = {
-  kind: "memory" | "redis";
+  kind: "in-memory" | "redis";
   pendingRequests: PendingRequestStore;
   checkpointer: BaseCheckpointSaver;
   ttlMs: number;
@@ -30,7 +30,7 @@ export function createInMemoryFrameworkAdapter(
   const ttlMs = options?.ttlMs ?? 15 * 60 * 1000;
   const checkpointer = createInMemoryCheckpointSaver();
   return {
-    kind: "memory",
+    kind: "in-memory",
     ttlMs,
     pendingRequests: createInMemoryPendingRequestStore(),
     checkpointer,

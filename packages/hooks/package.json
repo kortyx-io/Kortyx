@@ -46,7 +46,6 @@
   },
   "dependencies": {
     "@kortyx/core": "workspace:*",
-    "@kortyx/memory": "workspace:*",
     "@kortyx/providers": "workspace:*",
     "zod": "^4.1.13"
   },

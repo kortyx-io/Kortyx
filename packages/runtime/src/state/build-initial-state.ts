@@ -1,34 +1,34 @@
-import type { GraphState, MemoryEnvelope } from "@kortyx/core";
+import type { GraphState, RuntimeEnvelope } from "@kortyx/core";
 
 /**
- * Prepares the initial runtime graph state from chat context, memory, and runtime config.
+ * Prepares the initial graph state from chat context, runtime state, and runtime config.
  * This stays deliberately generic in the config type so apps can shape it.
  */
 export interface InitialStateArgs<Config = unknown> {
   input: unknown;
-  memory: MemoryEnvelope;
+  runtime: RuntimeEnvelope;
   config: Config;
   defaultWorkflowId?: string;
 }
 
 export async function buildInitialGraphState<Config>({
   input,
-  memory,
+  runtime,
   config,
   defaultWorkflowId,
 }: InitialStateArgs<Config>): Promise<GraphState> {
   const currentWorkflow =
-    (memory.currentWorkflow as any) || (defaultWorkflowId as any);
+    (runtime.requestedWorkflow as any) || (defaultWorkflowId as any);
   if (!currentWorkflow) {
     throw new Error(
-      "No workflow selected. Provide defaultWorkflowId (or set memory.currentWorkflow) before starting the graph.",
+      "No workflow selected. Provide defaultWorkflowId (or set runtime.requestedWorkflow) before starting the graph.",
     );
   }
 
   return {
     input,
     lastNode: "__start__",
-    memory,
+    runtime,
     config: config as unknown,
     conversationHistory: [],
     currentWorkflow,

@@ -58,7 +58,7 @@ describe("useReason interrupt flow", () => {
     });
     const state = createState();
 
-    const { result, memoryUpdates } = await runWithHookContext(
+    const { result, runtimeUpdates } = await runWithHookContext(
       { node, state, getProvider },
       async () =>
         useReason({
@@ -90,7 +90,7 @@ describe("useReason interrupt flow", () => {
 
     const interruptMeta = (interrupts[0] as { meta?: Record<string, unknown> })
       .meta;
-    expect(interruptMeta?.__kortyxResumeMemory).toBeTruthy();
+    expect(interruptMeta?.__kortyxResumeStatePatch).toBeTruthy();
 
     const structuredEvents = emitted.filter(
       (x) => x.event === "structured_data",
@@ -100,7 +100,7 @@ describe("useReason interrupt flow", () => {
     const textEvents = emitted.filter((x) => x.event.startsWith("text-"));
     expect(textEvents).toHaveLength(0);
 
-    expect(memoryUpdates).toBeTruthy();
+    expect(runtimeUpdates).toBeTruthy();
   });
 
   it("resumes from checkpointed first pass and skips re-running first pass model call", async () => {
@@ -120,7 +120,7 @@ describe("useReason interrupt flow", () => {
       },
     };
 
-    const memory = {
+    const runtime = {
       __kortyx: {
         nodeState: {
           nodeId: "reason",
@@ -148,9 +148,9 @@ describe("useReason interrupt flow", () => {
     const { node, emitted, interrupts } = createNode({
       interruptResponse: "accepted",
     });
-    const state = createState(memory);
+    const state = createState(runtime);
 
-    const { result, memoryUpdates } = await runWithHookContext(
+    const { result, runtimeUpdates } = await runWithHookContext(
       { node, state, getProvider },
       async () =>
         useReason({
@@ -179,7 +179,7 @@ describe("useReason interrupt flow", () => {
     expect(structuredEvents).toHaveLength(1);
 
     const nextByKey = (
-      memoryUpdates as {
+      runtimeUpdates as {
         __kortyx?: {
           nodeState?: { state?: { byKey?: Record<string, unknown> } };
         };

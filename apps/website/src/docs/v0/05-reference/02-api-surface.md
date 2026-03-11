@@ -49,7 +49,6 @@ Plus types like `GraphState`, `NodeResult`, `WorkflowDefinition`, `WorkflowId`.
 ```ts
 export {
   useInterrupt,
-  useAiMemory,
   useReason,
   useNodeState,
   useStructuredData,
@@ -59,29 +58,11 @@ export {
 ```js
 export {
   useInterrupt,
-  useAiMemory,
   useReason,
   useNodeState,
   useStructuredData,
   useWorkflowState,
 } from "@kortyx/hooks";
-```
-
-## Memory
-
-```ts
-export {
-  createInMemoryAdapter,
-  createPostgresAdapter,
-  createRedisAdapter,
-} from "@kortyx/memory";
-```
-```js
-export {
-  createInMemoryAdapter,
-  createPostgresAdapter,
-  createRedisAdapter,
-} from "@kortyx/memory";
 ```
 
 ## Providers

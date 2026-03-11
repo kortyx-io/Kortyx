@@ -11,9 +11,5 @@ export const agent = createAgent({
     interruptDemoWorkflow,
     reasonInterruptStructuredWorkflow,
   ],
-  memory: {
-    namespace: "kortyx-nextjs-chat",
-    ttlMs: 1000 * 60 * 60,
-  },
   defaultWorkflowId: "general-chat",
 });

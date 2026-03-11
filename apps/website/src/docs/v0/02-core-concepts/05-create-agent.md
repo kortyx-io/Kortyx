@@ -49,10 +49,11 @@ Only one of `workflowRegistry`, `workflows`, or `workflowsDir` is allowed in the
 Useful fields in `CreateAgentArgs`:
 
 - `workflows` / `workflowRegistry` / `workflowsDir`
-- `memory`
 - `defaultWorkflowId`
 - `frameworkAdapter`
 - `getProvider` (advanced: custom provider registry lookup)
+
+> **Good to know:** `createAgent(...)` does not manage business/data persistence for your app. Use your own DB or service clients inside node code, and use framework adapters only for runtime persistence such as interrupt/resume.
 
 Result object:
 

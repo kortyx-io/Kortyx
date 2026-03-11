@@ -10,7 +10,6 @@ export type { StreamChatFromRouteArgs } from "./adapters/http-client";
 export { streamChatFromRoute } from "./adapters/http-client";
 export type {
   Agent,
-  AgentMemoryConfig,
   AgentProcessOptions,
   CreateAgentArgs,
 } from "./chat/create-agent";

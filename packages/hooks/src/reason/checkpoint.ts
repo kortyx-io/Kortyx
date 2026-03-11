@@ -35,7 +35,7 @@ export const readReasonCheckpoint = (
   };
 };
 
-export const resolveHookMemoryPatch = (args: {
+export const resolveHookStatePatch = (args: {
   nodeId: string;
   currentNodeState: unknown;
   workflowState: Record<string, unknown>;

@@ -3,7 +3,6 @@
 
 export type {
   Agent,
-  AgentMemoryConfig,
   AgentProcessOptions,
   ChatRequestBody,
   CreateAgentArgs,
@@ -18,12 +17,12 @@ export {
 } from "@kortyx/agent";
 export type {
   GraphState,
-  MemoryEnvelope,
   NodeConfig,
   NodeContext,
   NodeFn,
   NodeHandler,
   NodeResult,
+  RuntimeEnvelope,
   WorkflowDefinition,
   WorkflowId,
 } from "@kortyx/core";
@@ -35,18 +34,12 @@ export type {
   UseStructuredDataArgs,
 } from "@kortyx/hooks";
 export {
-  useAiMemory,
   useInterrupt,
   useNodeState,
   useReason,
   useStructuredData,
   useWorkflowState,
 } from "@kortyx/hooks";
-export {
-  createInMemoryAdapter,
-  createPostgresAdapter,
-  createRedisAdapter,
-} from "@kortyx/memory";
 export * from "@kortyx/providers";
 export type { WorkflowRegistry } from "@kortyx/runtime";
 export {

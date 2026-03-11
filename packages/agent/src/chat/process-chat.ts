@@ -1,5 +1,4 @@
-import type { MemoryEnvelope } from "@kortyx/core";
-import type { MemoryAdapter } from "@kortyx/memory";
+import type { RuntimeEnvelope } from "@kortyx/core";
 import type { GetProviderFn } from "@kortyx/providers";
 import type { FrameworkAdapter, WorkflowRegistry } from "@kortyx/runtime";
 import {
@@ -35,7 +34,6 @@ export interface StreamChatArgs<Options> {
   workflowRegistry?: WorkflowRegistry;
   frameworkAdapter?: FrameworkAdapter;
   getProvider: GetProviderFn;
-  memoryAdapter?: MemoryAdapter;
   applyResumeSelection?: ApplyResumeSelection;
 }
 
@@ -49,14 +47,12 @@ export async function streamChat<Options = unknown>({
   workflowRegistry,
   frameworkAdapter,
   getProvider,
-  memoryAdapter,
   applyResumeSelection,
 }: StreamChatArgs<Options>): Promise<AsyncIterable<StreamChunk>> {
   const config = await loadRuntimeConfig(options);
   const runtimeConfig: Parameters<typeof createExecutionGraph>[1] = {
     ...config,
     getProvider,
-    ...(memoryAdapter ? { memoryAdapter } : {}),
     ...(frameworkAdapter
       ? { checkpointer: frameworkAdapter.checkpointer }
       : {}),
@@ -79,11 +75,9 @@ export async function streamChat<Options = unknown>({
   const input = extractLatestUserMessage(messages);
 
   const previousMessages = messages.slice(0, -1);
-  const memory: MemoryEnvelope = {
-    ...(previousMessages.length > 0
-      ? { conversationMessages: previousMessages }
-      : {}),
-  } as MemoryEnvelope;
+  const runtime: RuntimeEnvelope = {
+    ...(previousMessages.length > 0 ? { priorMessages: previousMessages } : {}),
+  } as RuntimeEnvelope;
 
   const isResumeRequest = Boolean(parseResumeMeta(last));
   const requestedWorkflowId = (() => {
@@ -95,14 +89,14 @@ export async function streamChat<Options = unknown>({
     return undefined;
   })();
   if (!isResumeRequest && requestedWorkflowId) {
-    if (requestedWorkflowId.trim() === "") delete memory.currentWorkflow;
-    else memory.currentWorkflow = requestedWorkflowId;
+    if (requestedWorkflowId.trim() === "") delete runtime.requestedWorkflow;
+    else runtime.requestedWorkflow = requestedWorkflowId;
   }
 
   const baseState = await buildInitialGraphState({
     input,
     config: runtimeConfig,
-    memory,
+    runtime,
     ...(defaultWorkflowId ? { defaultWorkflowId } : {}),
   });
 
