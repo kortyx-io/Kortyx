@@ -98,4 +98,4 @@ Resume only works if the framework adapter persists pending requests + checkpoin
 - redis adapter: recommended for production resume
 - hook state (`useNodeState` / `useWorkflowState`) follows the same checkpoint lifetime and limits
 
-See [Framework Adapters](../04-production/02-framework-adapters.md).
+See [Runtime Persistence Adapters](../04-production/02-framework-adapters.md).

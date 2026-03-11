@@ -1,35 +1,64 @@
 ---
 id: v0-runtime-persistence-boundary
-title: "Persistence Boundary"
-description: "Understand what Kortyx persists for runtime control and what your app should persist itself."
-keywords: [kortyx, persistence, framework-adapter, resume]
-sidebar_label: "Persistence Boundary"
+title: "Runtime Persistence"
+description: "Understand when you need Kortyx runtime persistence and when your app should use its own database."
+keywords: [kortyx, runtime-persistence, framework-adapter, resume]
+sidebar_label: "Runtime Persistence"
 ---
-# Persistence Boundary
+# Runtime Persistence
 
-There are two separate concerns here, but only one is Kortyx-owned.
+If you are new to Kortyx, the main idea is simple:
 
-## 1. Framework persistence (runtime internals)
+- Kortyx stores its own temporary workflow state so paused runs can continue later.
+- Your app stores its own business data in your database or service layer.
 
-Used for:
+Most confusion comes from mixing those two jobs together.
 
-- interrupt/resume tokens
-- checkpoint state for paused runs
+## Read this page if
 
-Configured through framework adapters (`createFrameworkAdapterFromEnv`, `createInMemoryFrameworkAdapter`, `createRedisFrameworkAdapter`).
+- you use `useInterrupt(...)`
+- you want a paused run to resume later
+- you want resume to survive a server restart or redeploy
 
-## 2. App persistence (your product data)
+If you are building a simple request -> response flow with no pause/resume, you can usually skip this page for now.
 
-Used for:
+## The simple rule
 
-- conversation records
-- customer/profile state
-- app-specific business context
+| You want to store... | Where it belongs |
+| --- | --- |
+| a paused run waiting for user input | Kortyx runtime persistence |
+| a checkpoint needed to continue after restart | Kortyx runtime persistence |
+| conversation history you want to show in your product | your app DB or service layer |
+| users, orgs, tickets, profiles, orders | your app DB or service layer |
+| documents, embeddings, search indexes | your app DB or service layer |
 
-## Important current behavior
+## Why Kortyx needs its own persistence
 
-- Kortyx owns framework persistence only
-- business/application persistence should live in your app DB or service layer
-- framework state is keyed by run/session context and TTL-driven
+When a workflow pauses, Kortyx needs to remember enough state to continue safely later.
 
-> **Good to know:** If you need long-lived product data in a node, call your own persistence layer directly. Do not treat runtime checkpoint state as an app data store.
+That includes:
+
+- the pending interrupt request
+- the checkpoint for the paused run
+- short-lived runtime state tied to that run
+
+Without that stored state, a restart would lose the paused workflow.
+
+## What Kortyx does not own
+
+Kortyx does not manage your product database, schema, or business records.
+
+If you want to save something because it matters to your product later, save it through your own DB or service layer inside node code.
+
+> **Good to know:** Treat Kortyx runtime persistence as execution state, not as an application data store.
+
+## When the default is enough
+
+- local dev or demos: in-memory is usually fine
+- production with interrupt/resume across restarts: use Redis
+
+> **Good to know:** The config property is still called `frameworkAdapter`, but what it controls is the runtime persistence backend used by Kortyx.
+
+## What to read next
+
+Read [Runtime Persistence Adapters](./02-framework-adapters.md) when you need to choose or configure the backend used for that runtime state.

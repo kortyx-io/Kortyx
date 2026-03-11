@@ -24,6 +24,6 @@ Kortyx is an opinionated framework for teams building production AI features tha
 - Next.js: fastest path for an initial app integration.
 - Express/Fastify: strong fit for server-heavy orchestration and infrastructure-owned deployments.
   - Start with [streamChat](../02-core-concepts/06-stream-chat.md)
-  - Then configure [Framework Adapters](../04-production/02-framework-adapters.md)
+  - Then configure [Runtime Persistence Adapters](../04-production/02-framework-adapters.md)
 
 > **Good to know:** The docs are TypeScript-first and prioritize system-builder workflows with production reliability in mind.
