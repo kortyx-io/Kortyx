@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.9.0](https://github.com/kortyx-io/kortyx/compare/website-v0.8.0...website-v0.9.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove @kortyx/memory and clarify runtime persistence
+
+### Bug Fixes
+
+* **docs:** simplify runtime persistence guidance ([dbe9639](https://github.com/kortyx-io/kortyx/commit/dbe9639da8b9b4c3f5cf536f1b2a5a54a24e2860))
+* **dx:** simplify streamChat API route surface and docs ([6ac69da](https://github.com/kortyx-io/kortyx/commit/6ac69da30945e48d251b3f16b979177cf5a4d108))
+* **dx:** simplify streamChat API route surface and docs ([ec6599a](https://github.com/kortyx-io/kortyx/commit/ec6599a5b745d2ec22d77a0ede4d730ddd4d261a))
+* remove @kortyx/memory and clarify runtime persistence ([613574d](https://github.com/kortyx-io/kortyx/commit/613574d535de680a7b9671e801613a8222052dd5))
+
 ## [0.8.0](https://github.com/kortyx-io/kortyx/compare/website-v0.7.0...website-v0.8.0) (2026-03-09)
 
 
