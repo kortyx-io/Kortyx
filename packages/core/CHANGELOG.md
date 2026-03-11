@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.5.0](https://github.com/kortyx-io/kortyx/compare/core-v0.4.1...core-v0.5.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove @kortyx/memory and clarify runtime persistence
+
+### Bug Fixes
+
+* **dx:** simplify streamChat API route surface and docs ([6ac69da](https://github.com/kortyx-io/kortyx/commit/6ac69da30945e48d251b3f16b979177cf5a4d108))
+* remove @kortyx/memory and clarify runtime persistence ([613574d](https://github.com/kortyx-io/kortyx/commit/613574d535de680a7b9671e801613a8222052dd5))
+
 ## [0.4.1](https://github.com/kortyx-io/kortyx/compare/core-v0.4.0...core-v0.4.1) (2026-02-17)
 
 

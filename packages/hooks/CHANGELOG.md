@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.8.0](https://github.com/kortyx-io/kortyx/compare/hooks-v0.7.0...hooks-v0.8.0) (2026-03-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* remove @kortyx/memory and clarify runtime persistence
+
+### Bug Fixes
+
+* **dx:** simplify streamChat API route surface and docs ([6ac69da](https://github.com/kortyx-io/kortyx/commit/6ac69da30945e48d251b3f16b979177cf5a4d108))
+* remove @kortyx/memory and clarify runtime persistence ([613574d](https://github.com/kortyx-io/kortyx/commit/613574d535de680a7b9671e801613a8222052dd5))
+
 ## [0.7.0](https://github.com/kortyx-io/kortyx/compare/hooks-v0.6.0...hooks-v0.7.0) (2026-03-09)
 
 

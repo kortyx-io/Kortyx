@@ -1,5 +1,13 @@
 # @chatbot-core/types
 
+## [0.5.1](https://github.com/kortyx-io/kortyx/compare/stream-v0.5.0...stream-v0.5.1) (2026-03-11)
+
+
+### Bug Fixes
+
+* **dx:** simplify streamChat API route surface and docs ([6ac69da](https://github.com/kortyx-io/kortyx/commit/6ac69da30945e48d251b3f16b979177cf5a4d108))
+* **dx:** simplify streamChat API route surface and docs ([ec6599a](https://github.com/kortyx-io/kortyx/commit/ec6599a5b745d2ec22d77a0ede4d730ddd4d261a))
+
 ## [0.5.0](https://github.com/kortyx-io/kortyx/compare/stream-v0.4.1...stream-v0.5.0) (2026-03-08)
 
 
