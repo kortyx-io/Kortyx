@@ -1,6 +1,5 @@
 import { resolve } from "node:path";
 import type { WorkflowDefinition } from "@kortyx/core";
-import { createInMemoryAdapter, type MemoryAdapter } from "@kortyx/memory";
 import {
   type GetProviderFn,
   getProvider as getRegisteredProvider,
@@ -11,20 +10,14 @@ import {
   createFrameworkAdapterFromEnv,
   createInMemoryWorkflowRegistry,
 } from "@kortyx/runtime";
+import type { StreamChunk } from "@kortyx/stream";
 import { z } from "zod";
 import type { ChatMessage } from "../types/chat-message";
-import { processChat as runProcessChat } from "./process-chat";
-
-export interface AgentMemoryConfig {
-  enabled?: boolean | undefined;
-  namespace?: string | undefined;
-  ttlMs?: number | undefined;
-}
+import { streamChat as runStreamChat } from "./process-chat";
 
 export interface AgentProcessOptions {
   sessionId?: string | undefined;
   workflowId?: string | undefined;
-  workflow?: string | undefined;
 }
 
 export interface CreateAgentArgs {
@@ -34,21 +27,19 @@ export interface CreateAgentArgs {
   workflowRegistry?: WorkflowRegistry;
   defaultWorkflowId?: string;
   frameworkAdapter?: FrameworkAdapter;
-  memory?: AgentMemoryConfig;
 }
 
 export interface Agent {
-  processChat: (
+  streamChat: (
     messages: ChatMessage[],
     options?: AgentProcessOptions,
-  ) => Promise<Response>;
+  ) => Promise<AsyncIterable<StreamChunk>>;
 }
 
 const agentProcessOptionsSchema = z
   .object({
     sessionId: z.string().optional(),
     workflowId: z.string().optional(),
-    workflow: z.string().optional(),
   })
   .strict();
 
@@ -60,14 +51,6 @@ const createAgentArgsBaseSchema = z
     workflowRegistry: z.unknown().optional(),
     defaultWorkflowId: z.string().optional(),
     frameworkAdapter: z.unknown().optional(),
-    memory: z
-      .object({
-        enabled: z.boolean().optional(),
-        namespace: z.string().optional(),
-        ttlMs: z.number().finite().positive().optional(),
-      })
-      .strict()
-      .optional(),
   })
   .strict();
 
@@ -117,17 +100,6 @@ const parseAgentProcessOptions = (
   return parseSchema(agentProcessOptionsSchema, value);
 };
 
-const resolveMemoryAdapter = (
-  memory: AgentMemoryConfig | undefined,
-): MemoryAdapter | undefined => {
-  if (memory?.enabled === false) return undefined;
-
-  return createInMemoryAdapter({
-    namespace: memory?.namespace ?? "kortyx-agent",
-    ttlMs: memory?.ttlMs ?? 1000 * 60 * 60,
-  });
-};
-
 export function createAgent(args: CreateAgentArgs): Agent {
   const parsedArgs = parseCreateAgentArgs(args);
 
@@ -138,13 +110,11 @@ export function createAgent(args: CreateAgentArgs): Agent {
     workflowRegistry,
     defaultWorkflowId,
     frameworkAdapter,
-    memory,
   } = parsedArgs;
 
   const resolvedDefaultWorkflowId = defaultWorkflowId;
   const resolvedFrameworkAdapter: FrameworkAdapter =
     frameworkAdapter ?? createFrameworkAdapterFromEnv();
-  const memoryAdapter = resolveMemoryAdapter(memory);
   const resolvedGetProvider = getProvider ?? getRegisteredProvider;
 
   const resolvedCwd = process.cwd();
@@ -170,39 +140,38 @@ export function createAgent(args: CreateAgentArgs): Agent {
     });
   })();
 
-  return {
-    processChat: async (
-      messages: ChatMessage[],
-      options?: AgentProcessOptions,
-    ): Promise<Response> => {
-      const parsedOptions = parseAgentProcessOptions(options);
+  const streamChat = async (
+    messages: ChatMessage[],
+    options?: AgentProcessOptions,
+  ): Promise<AsyncIterable<StreamChunk>> => {
+    const parsedOptions = parseAgentProcessOptions(options);
 
-      const registry = await registryPromise;
-      if (!registry) {
-        throw new Error(
-          "createAgent requires workflows, workflowsDir, or workflowRegistry.",
-        );
-      }
+    const registry = await registryPromise;
+    if (!registry) {
+      throw new Error(
+        "createAgent requires workflows, workflowsDir, or workflowRegistry.",
+      );
+    }
 
-      return runProcessChat({
-        ...(resolvedDefaultWorkflowId
-          ? { defaultWorkflowId: resolvedDefaultWorkflowId }
-          : {}),
-        messages,
-        options: parsedOptions,
-        workflowRegistry: registry,
-        frameworkAdapter: resolvedFrameworkAdapter,
-        getProvider: resolvedGetProvider,
-        ...(memoryAdapter ? { memoryAdapter } : {}),
-        loadRuntimeConfig: (runtimeOptions?: AgentProcessOptions) =>
-          runtimeOptions?.sessionId
-            ? {
-                session: {
-                  id: runtimeOptions.sessionId,
-                },
-              }
-            : {},
-      });
-    },
+    return runStreamChat({
+      ...(resolvedDefaultWorkflowId
+        ? { defaultWorkflowId: resolvedDefaultWorkflowId }
+        : {}),
+      messages,
+      options: parsedOptions,
+      workflowRegistry: registry,
+      frameworkAdapter: resolvedFrameworkAdapter,
+      getProvider: resolvedGetProvider,
+      loadRuntimeConfig: (runtimeOptions?: AgentProcessOptions) =>
+        runtimeOptions?.sessionId
+          ? {
+              session: {
+                id: runtimeOptions.sessionId,
+              },
+            }
+          : {},
+    });
   };
+
+  return { streamChat };
 }

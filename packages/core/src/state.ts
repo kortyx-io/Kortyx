@@ -20,15 +20,15 @@ export type TokenUsage = {
   total: number;
 };
 
-export type MemoryEnvelope = {
-  currentWorkflow?: WorkflowId;
+export type RuntimeEnvelope = {
+  requestedWorkflow?: WorkflowId;
   checkpoints?: Record<string, GraphCheckpoint>;
   toolResults?: unknown;
   flags?: Record<string, any>;
   tokenUsage?: TokenUsage;
   lastSearch?: unknown;
   lastRank?: unknown;
-  conversationMessages?: any[];
+  priorMessages?: any[];
 };
 
 export type ConversationHistoryEntry = {
@@ -46,7 +46,7 @@ export type GraphState = {
   config: any;
   startedAt?: number;
   updatedAt?: number;
-  memory: MemoryEnvelope;
+  runtime: RuntimeEnvelope;
   transitionTo?: WorkflowId;
   retryCount?: number;
   awaitingHumanInput: boolean;
@@ -69,10 +69,10 @@ export type GraphState = {
 
 export type GraphStateInput = Omit<
   GraphState,
-  "lastNode" | "memory" | "awaitingHumanInput" | "conversationHistory"
+  "lastNode" | "runtime" | "awaitingHumanInput" | "conversationHistory"
 > & {
   lastNode?: string;
-  memory?: MemoryEnvelope;
+  runtime?: RuntimeEnvelope;
   awaitingHumanInput?: boolean;
   conversationHistory?: ConversationHistoryEntry[];
 };
@@ -95,19 +95,19 @@ export const TokenUsageSchema = z
   })
   .strict() as z.ZodType<TokenUsage>;
 
-// Generic envelope; concrete apps can refine via intersection or extension.
-export const MemoryEnvelopeSchema = z
+// Generic runtime envelope; concrete apps can refine via intersection or extension.
+export const RuntimeEnvelopeSchema = z
   .object({
-    currentWorkflow: WorkflowIdSchema.optional(),
+    requestedWorkflow: WorkflowIdSchema.optional(),
     checkpoints: z.record(GraphCheckpointSchema).optional(),
     toolResults: z.unknown().optional(),
     flags: z.record(z.any()).optional(),
     tokenUsage: TokenUsageSchema.optional(),
     lastSearch: z.unknown().optional(),
     lastRank: z.unknown().optional(),
-    conversationMessages: z.array(z.any()).optional(),
+    priorMessages: z.array(z.any()).optional(),
   })
-  .strict() as z.ZodType<MemoryEnvelope>;
+  .strict() as z.ZodType<RuntimeEnvelope>;
 
 export const GraphStateSchema = z
   .object({
@@ -119,7 +119,7 @@ export const GraphStateSchema = z
     config: z.any(),
     startedAt: z.number().optional(),
     updatedAt: z.number().optional(),
-    memory: MemoryEnvelopeSchema.optional().default({}),
+    runtime: RuntimeEnvelopeSchema.optional().default({}),
     transitionTo: WorkflowIdSchema.optional(),
     retryCount: z.number().int().optional(),
     awaitingHumanInput: z.boolean().optional().default(false),

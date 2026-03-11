@@ -4,7 +4,6 @@
   "packages/core": "0.4.1",
   "packages/hooks": "0.7.0",
   "packages/kortyx": "0.7.0",
-  "packages/memory": "0.3.1",
   "packages/providers": "0.3.2",
   "providers/google": "0.2.2",
   "packages/runtime": "0.7.0",

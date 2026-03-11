@@ -1,6 +1,5 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import type { GraphState, NodeContext } from "@kortyx/core";
-import type { MemoryAdapter } from "@kortyx/memory";
 import type { GetProviderFn } from "@kortyx/providers";
 
 type NodeStateStore = {
@@ -8,7 +7,7 @@ type NodeStateStore = {
   byKey: Record<string, unknown>;
 };
 
-type HookMemory = {
+type HookRuntimeState = {
   nodeState?: Record<string, unknown>;
   workflowState?: Record<string, unknown>;
 };
@@ -17,7 +16,6 @@ export type HookRuntimeContext = {
   node: NodeContext;
   state: GraphState;
   getProvider?: GetProviderFn;
-  memoryAdapter?: MemoryAdapter;
 };
 
 type HookInternalContext = HookRuntimeContext & {
@@ -50,10 +48,10 @@ const normalizeNodeState = (value: unknown): NodeStateStore => {
 const cloneWorkflowState = (value: unknown): Record<string, unknown> =>
   isRecord(value) ? { ...value } : {};
 
-const getHookMemory = (state: GraphState): HookMemory => {
-  const memory = (state.memory ?? {}) as Record<string, unknown>;
-  const internal = isRecord(memory.__kortyx) ? memory.__kortyx : undefined;
-  const result: HookMemory = {};
+const getHookRuntimeState = (state: GraphState): HookRuntimeState => {
+  const runtime = (state.runtime ?? {}) as Record<string, unknown>;
+  const internal = isRecord(runtime.__kortyx) ? runtime.__kortyx : undefined;
+  const result: HookRuntimeState = {};
   if (isRecord(internal?.nodeState)) result.nodeState = internal?.nodeState;
   if (isRecord(internal?.workflowState)) {
     result.workflowState = internal?.workflowState;
@@ -64,13 +62,13 @@ const getHookMemory = (state: GraphState): HookMemory => {
 const createInternalContext = (
   ctx: HookRuntimeContext,
 ): HookInternalContext => {
-  const hookMemory = getHookMemory(ctx.state);
+  const hookRuntimeState = getHookRuntimeState(ctx.state);
   const nodeId = ctx.node.graph.node;
   const storedNodeId =
-    typeof (hookMemory.nodeState as any)?.nodeId === "string"
-      ? String((hookMemory.nodeState as any)?.nodeId)
+    typeof (hookRuntimeState.nodeState as any)?.nodeId === "string"
+      ? String((hookRuntimeState.nodeState as any)?.nodeId)
       : "";
-  const storedState = (hookMemory.nodeState as any)?.state;
+  const storedState = (hookRuntimeState.nodeState as any)?.state;
   const currentNodeState =
     storedNodeId && storedNodeId === nodeId
       ? normalizeNodeState(storedState)
@@ -81,12 +79,12 @@ const createInternalContext = (
     nodeStateIndex: 0,
     reasonCallIndex: 0,
     currentNodeState,
-    workflowState: cloneWorkflowState(hookMemory.workflowState),
+    workflowState: cloneWorkflowState(hookRuntimeState.workflowState),
     dirty: false,
   };
 };
 
-const buildMemoryUpdates = (ctx: HookInternalContext) => {
+const buildRuntimeStateUpdates = (ctx: HookInternalContext) => {
   if (!ctx.dirty) return null;
   return {
     __kortyx: {
@@ -102,23 +100,23 @@ const buildMemoryUpdates = (ctx: HookInternalContext) => {
 export async function runWithHookContext<T>(
   ctx: HookRuntimeContext,
   fn: () => Promise<T>,
-): Promise<{ result: T; memoryUpdates: Record<string, unknown> | null }> {
+): Promise<{ result: T; runtimeUpdates: Record<string, unknown> | null }> {
   const internal = createInternalContext(ctx);
   try {
     const result = await storage.run(internal, fn);
-    return { result, memoryUpdates: buildMemoryUpdates(internal) };
+    return { result, runtimeUpdates: buildRuntimeStateUpdates(internal) };
   } catch (err) {
-    const memoryUpdates = buildMemoryUpdates(internal);
-    if (memoryUpdates) {
-      const currentMemory = isRecord(internal.state.memory)
-        ? (internal.state.memory as Record<string, unknown>)
+    const runtimeUpdates = buildRuntimeStateUpdates(internal);
+    if (runtimeUpdates) {
+      const currentRuntime = isRecord(internal.state.runtime)
+        ? (internal.state.runtime as Record<string, unknown>)
         : {};
-      internal.state.memory = {
-        ...currentMemory,
-        ...memoryUpdates,
-      } as unknown as GraphState["memory"];
+      internal.state.runtime = {
+        ...currentRuntime,
+        ...runtimeUpdates,
+      } as unknown as GraphState["runtime"];
       if (err && typeof err === "object") {
-        (err as any).__kortyxMemoryUpdates = memoryUpdates;
+        (err as any).__kortyxHookStatePatch = runtimeUpdates;
       }
     }
     throw err;

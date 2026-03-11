@@ -9,13 +9,12 @@ sidebar_label: "Hooks"
 
 Hooks are the public node-level runtime API (import from `kortyx`).
 
-Use them for five things:
+Use them for four things:
 
 - run model reasoning
 - pause for human input
 - keep short-lived runtime state
 - emit structured UI payloads
-- access your configured memory adapter
 
 ## Quick Selection
 
@@ -24,7 +23,6 @@ Use them for five things:
 - Need state local to one node execution flow: `useNodeState(...)`
 - Need state shared across nodes in the same run: `useWorkflowState(...)`
 - Need UI-ready structured events in stream: `useStructuredData(...)`
-- Need app-managed persistence APIs: `useAiMemory()`
 
 ## `useReason(...)`
 
@@ -209,8 +207,8 @@ const [todos, setTodos] = useWorkflowState("todos", []);
 
 Across messages/sessions:
 
-- Hook state is not a long-term session store. A new `processChat` request starts a new run with fresh hook state.
-- For cross-request persistence, use your own storage via `useAiMemory()` or app-level data stores.
+- Hook state is not a long-term session store. A new chat request starts a new run with fresh hook state.
+- For cross-request persistence, call your own DBs or service clients from node code.
 
 Durability and practical limits:
 
@@ -222,7 +220,7 @@ Durability and practical limits:
 Practical guideline:
 
 - use hook state for runtime flow control
-- use `useAiMemory()` (or your own DB) for data that must survive across requests/users
+- use your own DB or service layer for data that must survive across requests/users
 
 ## `useStructuredData(...)`
 
@@ -243,20 +241,6 @@ useStructuredData({
 ```
 
 `useStructuredData` emits `structured_data` from the current node context for UI consumption.
-
-## `useAiMemory()`
-
-Returns the configured `MemoryAdapter`. If none is configured, it throws.
-
-```ts
-const memory = useAiMemory();
-await memory.save("session-1", state);
-```
-
-```js
-const memory = useAiMemory();
-await memory.save("session-1", state);
-```
 
 > **Good to know:** On resume, node code starts again from the top. `useReason` continues from its internal checkpoint, but code before `useReason` can run again. Keep `useReason` as the first meaningful operation and guard pre-`useReason` side effects with `useNodeState`.
 

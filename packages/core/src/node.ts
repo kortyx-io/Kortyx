@@ -88,7 +88,7 @@ export type NodeContext = {
 export type NodeResult = {
   infra?:
     | {
-        memory?: unknown;
+        runtime?: unknown;
         config?: unknown;
         checkpoint?: boolean;
         toolResults?: unknown;
@@ -220,7 +220,7 @@ export const NodeResultSchema = z
   .object({
     infra: z
       .object({
-        memory: z.unknown().optional(),
+        runtime: z.unknown().optional(),
         config: z.unknown().optional(),
         checkpoint: z.boolean().optional(),
         toolResults: z.unknown().optional(),

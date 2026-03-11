@@ -50,7 +50,6 @@
     "@kortyx/agent": "workspace:*",
     "@kortyx/core": "workspace:*",
     "@kortyx/hooks": "workspace:*",
-    "@kortyx/memory": "workspace:*",
     "@kortyx/providers": "workspace:*",
     "@kortyx/runtime": "workspace:*",
     "@kortyx/stream": "workspace:*",

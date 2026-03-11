@@ -1,8 +1,7 @@
-import type { MemoryAdapter } from "@kortyx/memory";
-import { describe, expect, it, vi } from "vitest";
+import { describe, expect, it } from "vitest";
 import { z } from "zod";
 import { runWithHookContext } from "../src/context";
-import { useAiMemory, useInterrupt, useStructuredData } from "../src/hooks";
+import { useInterrupt, useStructuredData } from "../src/hooks";
 import { createNode, createState } from "./helpers";
 
 const ChoiceRequestSchema = z.object({
@@ -123,33 +122,5 @@ describe("hooks core APIs", () => {
         }),
       ),
     ).rejects.toThrow("useInterrupt response validation failed");
-  });
-
-  it("useAiMemory returns configured adapter", async () => {
-    const { node } = createNode();
-    const state = createState();
-    const memoryAdapter: MemoryAdapter = {
-      save: vi.fn(async () => {}),
-      load: vi.fn(async () => null),
-      delete: vi.fn(async () => {}),
-    };
-
-    const { result } = await runWithHookContext(
-      { node, state, memoryAdapter },
-      async () => useAiMemory(),
-    );
-
-    expect(result).toBe(memoryAdapter);
-  });
-
-  it("useAiMemory throws when adapter is missing", async () => {
-    const { node } = createNode();
-    const state = createState();
-
-    await expect(
-      runWithHookContext({ node, state }, async () => useAiMemory()),
-    ).rejects.toThrow(
-      "useAiMemory requires a memory adapter in runtime config.",
-    );
   });
 });

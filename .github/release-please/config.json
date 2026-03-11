@@ -25,10 +25,6 @@
       "package-name": "kortyx",
       "component": "kortyx"
     },
-    "packages/memory": {
-      "package-name": "@kortyx/memory",
-      "component": "memory"
-    },
     "packages/providers": {
       "package-name": "@kortyx/providers",
       "component": "providers"

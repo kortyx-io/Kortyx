@@ -19,13 +19,12 @@ This page maps the current OSS packages in this monorepo.
 | Package | Purpose | Typical consumers |
 | --- | --- | --- |
 | `kortyx` | batteries-included facade | application code |
-| `@kortyx/agent` | chat orchestration (`createAgent`, `processChat`) | app backend adapters |
+| `@kortyx/agent` | chat orchestration (`createAgent` + `agent.streamChat`) | app backend adapters |
 | `@kortyx/core` | workflow + node + state contracts | workflow authors, framework users |
 | `@kortyx/runtime` | graph execution + registries + framework adapters | advanced runtime integration |
-| `@kortyx/hooks` | node hooks (`useAiProvider`, state hooks, interrupts) | node authors |
+| `@kortyx/hooks` | node hooks (`useReason`, state hooks, interrupts, structured data) | node authors |
 | `@kortyx/providers` | provider contracts + registry | runtime/provider wiring |
 | `@kortyx/google` | Google Gemini provider implementation | apps using Google models |
-| `@kortyx/memory` | business memory adapter contract + in-memory adapter | app persistence integration |
 | `@kortyx/stream` | stream chunk types + SSE server/client helpers | web APIs + clients |
 | `@kortyx/utils` | shared helpers (`deepMergeWithArrayOverwrite`, `withRetries`, `contentToText`) | framework internals |
 | `@kortyx/cli` | CLI tooling (early stage) | CLI users |
@@ -33,5 +32,5 @@ This page maps the current OSS packages in this monorepo.
 ## Notes about current implementation
 
 - Providers: install provider packages per need (for example `@kortyx/google`).
-- Memory adapters: in-memory is implemented; Redis/Postgres constructors exist but throw `not implemented yet`.
+- Business persistence: own it in your app; Kortyx only provides runtime/framework persistence.
 - Stream structured-data schema currently has a built-in `jobs` discriminated type; apps may still emit custom structured payloads.

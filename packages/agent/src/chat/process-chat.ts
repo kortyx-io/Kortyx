@@ -1,5 +1,4 @@
-import type { MemoryEnvelope } from "@kortyx/core";
-import type { MemoryAdapter } from "@kortyx/memory";
+import type { RuntimeEnvelope } from "@kortyx/core";
 import type { GetProviderFn } from "@kortyx/providers";
 import type { FrameworkAdapter, WorkflowRegistry } from "@kortyx/runtime";
 import {
@@ -7,7 +6,7 @@ import {
   createExecutionGraph,
   makeRequestId,
 } from "@kortyx/runtime";
-import { createStreamResponse, type StreamChunk } from "@kortyx/stream";
+import type { StreamChunk } from "@kortyx/stream";
 import type { ApplyResumeSelection } from "../interrupt/resume-handler";
 import {
   parseResumeMeta,
@@ -23,7 +22,7 @@ export interface RuntimeConfig {
   [key: string]: unknown;
 }
 
-export interface ProcessChatArgs<Options> {
+export interface StreamChatArgs<Options> {
   messages: ChatMessage[];
   options?: Options | undefined;
   sessionId?: string;
@@ -35,11 +34,10 @@ export interface ProcessChatArgs<Options> {
   workflowRegistry?: WorkflowRegistry;
   frameworkAdapter?: FrameworkAdapter;
   getProvider: GetProviderFn;
-  memoryAdapter?: MemoryAdapter;
   applyResumeSelection?: ApplyResumeSelection;
 }
 
-export async function processChat<Options = unknown>({
+export async function streamChat<Options = unknown>({
   messages,
   options,
   sessionId,
@@ -49,14 +47,12 @@ export async function processChat<Options = unknown>({
   workflowRegistry,
   frameworkAdapter,
   getProvider,
-  memoryAdapter,
   applyResumeSelection,
-}: ProcessChatArgs<Options>): Promise<Response> {
+}: StreamChatArgs<Options>): Promise<AsyncIterable<StreamChunk>> {
   const config = await loadRuntimeConfig(options);
   const runtimeConfig: Parameters<typeof createExecutionGraph>[1] = {
     ...config,
     getProvider,
-    ...(memoryAdapter ? { memoryAdapter } : {}),
     ...(frameworkAdapter
       ? { checkpointer: frameworkAdapter.checkpointer }
       : {}),
@@ -67,7 +63,7 @@ export async function processChat<Options = unknown>({
     (workflowRegistry ? (id) => workflowRegistry.select(id) : null);
   if (!workflowSelector) {
     throw new Error(
-      "processChat requires selectWorkflow or workflowRegistry to resolve workflows.",
+      "streamChat requires selectWorkflow or workflowRegistry to resolve workflows.",
     );
   }
 
@@ -79,11 +75,9 @@ export async function processChat<Options = unknown>({
   const input = extractLatestUserMessage(messages);
 
   const previousMessages = messages.slice(0, -1);
-  const memory: MemoryEnvelope = {
-    ...(previousMessages.length > 0
-      ? { conversationMessages: previousMessages }
-      : {}),
-  } as MemoryEnvelope;
+  const runtime: RuntimeEnvelope = {
+    ...(previousMessages.length > 0 ? { priorMessages: previousMessages } : {}),
+  } as RuntimeEnvelope;
 
   const isResumeRequest = Boolean(parseResumeMeta(last));
   const requestedWorkflowId = (() => {
@@ -92,19 +86,17 @@ export async function processChat<Options = unknown>({
     const record = options as Record<string, unknown>;
     const wfId = record.workflowId;
     if (typeof wfId === "string") return wfId;
-    const wf = record.workflow;
-    if (typeof wf === "string") return wf;
     return undefined;
   })();
   if (!isResumeRequest && requestedWorkflowId) {
-    if (requestedWorkflowId.trim() === "") delete memory.currentWorkflow;
-    else memory.currentWorkflow = requestedWorkflowId;
+    if (requestedWorkflowId.trim() === "") delete runtime.requestedWorkflow;
+    else runtime.requestedWorkflow = requestedWorkflowId;
   }
 
   const baseState = await buildInitialGraphState({
     input,
     config: runtimeConfig,
-    memory,
+    runtime,
     ...(defaultWorkflowId ? { defaultWorkflowId } : {}),
   });
 
@@ -117,7 +109,7 @@ export async function processChat<Options = unknown>({
     ...(defaultWorkflowId ? { defaultWorkflowId } : {}),
     ...(applyResumeSelection ? { applyResumeSelection } : {}),
   });
-  if (resumeStream) return createStreamResponse(resumeStream);
+  if (resumeStream) return resumeStream as AsyncIterable<StreamChunk>;
 
   const runId = makeRequestId("run");
   const currentWorkflow = baseState.currentWorkflow;
@@ -135,5 +127,5 @@ export async function processChat<Options = unknown>({
     ...(frameworkAdapter ? { frameworkAdapter } : {}),
   });
 
-  return createStreamResponse(orchestratedStream as AsyncIterable<StreamChunk>);
+  return orchestratedStream as AsyncIterable<StreamChunk>;
 }

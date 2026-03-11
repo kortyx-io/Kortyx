@@ -7,7 +7,6 @@ import type {
 } from "@kortyx/core";
 import { runWithHookContext } from "@kortyx/hooks";
 import { runReasonEngine } from "@kortyx/hooks/internal";
-import type { MemoryAdapter } from "@kortyx/memory";
 import type { GetProviderFn } from "@kortyx/providers";
 import { deepMergeWithArrayOverwrite } from "@kortyx/utils";
 import { Annotation, interrupt, StateGraph } from "@langchain/langgraph";
@@ -18,7 +17,6 @@ import { resolveNodeHandler } from "../node-loader";
 export interface ExecutionRuntimeConfig {
   emit?: (event: string, payload: unknown) => void;
   onCheckpoint?: (args: { nodeId: string; state: GraphState }) => void;
-  memoryAdapter?: MemoryAdapter;
   checkpointer?: BaseCheckpointSaver;
   /**
    * Provider factory used by ctx.speak to obtain a streaming model.
@@ -38,7 +36,7 @@ export async function createExecutionGraph(
     lastNode: Annotation<string>,
     lastCondition: Annotation<string>,
     lastIntent: Annotation<string>,
-    memory: Annotation<Record<string, unknown>>({
+    runtime: Annotation<Record<string, unknown>>({
       reducer: (l, r) => deepMergeWithArrayOverwrite(l ?? {}, r ?? {}),
       default: () => ({}),
     }),
@@ -237,19 +235,19 @@ export async function createExecutionGraph(
       const maxAttempts = behavior.retry?.maxAttempts ?? 1;
       let attempt = 0;
       let nodeResult: NodeResult | undefined;
-      let hookMemoryUpdates: Record<string, unknown> | null = null;
-      let retryHookMemory: Record<string, unknown> | null = null;
+      let hookRuntimeUpdates: Record<string, unknown> | null = null;
+      let retryHookRuntime: Record<string, unknown> | null = null;
 
       while (attempt < maxAttempts) {
         try {
           attempt++;
           const attemptState =
-            retryHookMemory && typeof retryHookMemory === "object"
+            retryHookRuntime && typeof retryHookRuntime === "object"
               ? ({
                   ...state,
-                  memory: deepMergeWithArrayOverwrite(
-                    (state.memory ?? {}) as Record<string, unknown>,
-                    retryHookMemory,
+                  runtime: deepMergeWithArrayOverwrite(
+                    (state.runtime ?? {}) as Record<string, unknown>,
+                    retryHookRuntime,
                   ),
                 } as GraphState)
               : state;
@@ -259,9 +257,6 @@ export async function createExecutionGraph(
             ...(runtimeConfig.getProvider
               ? { getProvider: runtimeConfig.getProvider }
               : {}),
-            ...(runtimeConfig.memoryAdapter
-              ? { memoryAdapter: runtimeConfig.memoryAdapter }
-              : {}),
           };
           const hookRun = await runWithHookContext(hookContext, async () =>
             resolvedRun({
@@ -270,23 +265,23 @@ export async function createExecutionGraph(
             }),
           );
           nodeResult = hookRun.result as NodeResult;
-          hookMemoryUpdates = hookRun.memoryUpdates;
+          hookRuntimeUpdates = hookRun.runtimeUpdates;
           break;
         } catch (err) {
-          const patch = (err as any)?.__kortyxMemoryUpdates as
+          const patch = (err as any)?.__kortyxHookStatePatch as
             | Record<string, unknown>
             | null
             | undefined;
           if (patch && typeof patch === "object") {
-            // Preserve hook memory even when execution pauses via interrupt.
+            // Preserve hook runtime state even when execution pauses via interrupt.
             // Without this merge, checkpointed hook state (e.g. useReason drafts)
             // can be lost before resume.
-            state.memory = deepMergeWithArrayOverwrite(
-              (state.memory ?? {}) as Record<string, unknown>,
+            state.runtime = deepMergeWithArrayOverwrite(
+              (state.runtime ?? {}) as Record<string, unknown>,
               patch,
             );
-            retryHookMemory = deepMergeWithArrayOverwrite(
-              (retryHookMemory ?? {}) as Record<string, unknown>,
+            retryHookRuntime = deepMergeWithArrayOverwrite(
+              (retryHookRuntime ?? {}) as Record<string, unknown>,
               patch,
             );
           }
@@ -301,12 +296,12 @@ export async function createExecutionGraph(
       }
 
       const res: NodeResult = (nodeResult ?? {}) as NodeResult;
-      if (hookMemoryUpdates) {
+      if (hookRuntimeUpdates) {
         res.infra = {
           ...(res.infra ?? {}),
-          memory: deepMergeWithArrayOverwrite(
-            ((res.infra?.memory ?? {}) as Record<string, unknown>) || {},
-            hookMemoryUpdates,
+          runtime: deepMergeWithArrayOverwrite(
+            ((res.infra?.runtime ?? {}) as Record<string, unknown>) || {},
+            hookRuntimeUpdates,
           ),
         };
       }
@@ -343,10 +338,10 @@ export async function createExecutionGraph(
           res.data as Record<string, unknown>,
         );
       }
-      if (res.infra?.memory && typeof res.infra.memory === "object") {
-        updates.memory = deepMergeWithArrayOverwrite(
-          (state.memory ?? {}) as Record<string, unknown>,
-          res.infra.memory as Record<string, unknown>,
+      if (res.infra?.runtime && typeof res.infra.runtime === "object") {
+        updates.runtime = deepMergeWithArrayOverwrite(
+          (state.runtime ?? {}) as Record<string, unknown>,
+          res.infra.runtime as Record<string, unknown>,
         );
       }
 
@@ -457,7 +452,7 @@ export async function createExecutionGraph(
     checkpointId: string,
   ) => {
     const checkpoints = (
-      state.memory as { checkpoints?: Record<string, { snapshot: unknown }> }
+      state.runtime as { checkpoints?: Record<string, { snapshot: unknown }> }
     )?.checkpoints;
     const snapshot = checkpoints?.[checkpointId];
     if (!snapshot) throw new Error(`Checkpoint '${checkpointId}' not found`);

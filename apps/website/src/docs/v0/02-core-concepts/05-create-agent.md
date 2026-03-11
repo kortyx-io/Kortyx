@@ -31,7 +31,7 @@ export const agent = createAgent({
 });
 ```
 
-Pass `sessionId` per request in `agent.processChat(...)`.
+Pass `sessionId` per request when you want analytics/tracing correlation across requests.
 
 ## Workflow source resolution
 
@@ -49,13 +49,16 @@ Only one of `workflowRegistry`, `workflows`, or `workflowsDir` is allowed in the
 Useful fields in `CreateAgentArgs`:
 
 - `workflows` / `workflowRegistry` / `workflowsDir`
-- `memory`
 - `defaultWorkflowId`
 - `frameworkAdapter`
 - `getProvider` (advanced: custom provider registry lookup)
 
+> **Good to know:** `createAgent(...)` does not manage business/data persistence for your app. Use your own DB or service clients inside node code, and use framework adapters only for runtime persistence such as interrupt/resume.
+
 Result object:
 
 ```ts
-const response = await agent.processChat(messages, options);
+const stream = await agent.streamChat(messages, options);
 ```
+
+- `agent.streamChat(...)`: returns `AsyncIterable<StreamChunk>` (best for custom route handling)

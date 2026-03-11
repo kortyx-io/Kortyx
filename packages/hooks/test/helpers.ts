@@ -27,13 +27,15 @@ type CreateNodeArgs = {
   onInterrupt?: (input: InterruptInput) => InterruptResult;
 };
 
-export const createState = (memory: Record<string, unknown> = {}): GraphState =>
+export const createState = (
+  runtime: Record<string, unknown> = {},
+): GraphState =>
   ({
     input: "",
     lastNode: "__start__",
     currentWorkflow: "test-workflow",
     config: {},
-    memory,
+    runtime,
     awaitingHumanInput: false,
     conversationHistory: [],
   }) as GraphState;

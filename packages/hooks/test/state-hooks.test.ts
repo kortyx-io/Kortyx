@@ -21,14 +21,14 @@ describe("state hooks", () => {
 
     expect(firstRun.result).toEqual({ count: 0, ready: false });
     const byIndex = (
-      firstRun.memoryUpdates as {
+      firstRun.runtimeUpdates as {
         __kortyx?: { nodeState?: { state?: { byIndex?: unknown[] } } };
       }
     ).__kortyx?.nodeState?.state?.byIndex;
     expect(byIndex).toEqual([1, true]);
 
     const secondState = createState(
-      (firstRun.memoryUpdates ?? {}) as Record<string, unknown>,
+      (firstRun.runtimeUpdates ?? {}) as Record<string, unknown>,
     );
 
     const secondRun = await runWithHookContext(
@@ -58,7 +58,7 @@ describe("state hooks", () => {
 
     expect(firstRun.result).toBe(0);
     const byIndex = (
-      firstRun.memoryUpdates as {
+      firstRun.runtimeUpdates as {
         __kortyx?: {
           nodeState?: { state?: { byIndex?: unknown[] } };
         };
@@ -67,7 +67,7 @@ describe("state hooks", () => {
     expect(byIndex?.[0]).toEqual({ cursor: 2 });
 
     const secondState = createState(
-      (firstRun.memoryUpdates ?? {}) as Record<string, unknown>,
+      (firstRun.runtimeUpdates ?? {}) as Record<string, unknown>,
     );
 
     const secondRun = await runWithHookContext(
@@ -96,14 +96,14 @@ describe("state hooks", () => {
 
     expect(firstRun.result).toEqual([]);
     const workflowState = (
-      firstRun.memoryUpdates as {
+      firstRun.runtimeUpdates as {
         __kortyx?: { workflowState?: Record<string, unknown> };
       }
     ).__kortyx?.workflowState;
     expect(workflowState?.todos).toEqual(["item-1"]);
 
     const secondState = createState(
-      (firstRun.memoryUpdates ?? {}) as Record<string, unknown>,
+      (firstRun.runtimeUpdates ?? {}) as Record<string, unknown>,
     );
 
     const secondRun = await runWithHookContext(

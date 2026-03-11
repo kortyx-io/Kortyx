@@ -3,29 +3,26 @@
 
 export type {
   Agent,
-  AgentMemoryConfig,
   AgentProcessOptions,
   ChatRequestBody,
   CreateAgentArgs,
-  ProcessChatArgs,
   StreamChatFromRouteArgs,
 } from "@kortyx/agent";
 export {
   createAgent,
   createChatRouteHandler,
+  handleChatRequestBody,
   parseChatRequestBody,
-  processChat,
-  processChatRequestBody,
   streamChatFromRoute,
 } from "@kortyx/agent";
 export type {
   GraphState,
-  MemoryEnvelope,
   NodeConfig,
   NodeContext,
   NodeFn,
   NodeHandler,
   NodeResult,
+  RuntimeEnvelope,
   WorkflowDefinition,
   WorkflowId,
 } from "@kortyx/core";
@@ -37,18 +34,12 @@ export type {
   UseStructuredDataArgs,
 } from "@kortyx/hooks";
 export {
-  useAiMemory,
   useInterrupt,
   useNodeState,
   useReason,
   useStructuredData,
   useWorkflowState,
 } from "@kortyx/hooks";
-export {
-  createInMemoryAdapter,
-  createPostgresAdapter,
-  createRedisAdapter,
-} from "@kortyx/memory";
 export * from "@kortyx/providers";
 export type { WorkflowRegistry } from "@kortyx/runtime";
 export {
@@ -62,9 +53,17 @@ export {
   listRegisteredNodes,
   registerNode,
 } from "@kortyx/runtime";
-export type { ConsumeStreamHandlers, StreamChunk } from "@kortyx/stream";
+export type {
+  BufferedStreamResult,
+  ConsumeStreamHandlers,
+  StreamChunk,
+} from "@kortyx/stream";
 export {
+  collectBufferedStream,
+  collectStream,
   consumeStream,
   createStreamResponse,
   readStream,
+  summarizeStreamChunks,
+  toSSE,
 } from "@kortyx/stream";

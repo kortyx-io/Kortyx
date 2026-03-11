@@ -34,7 +34,7 @@ If you prefer scoped packages, see [Package Overview](../05-reference/01-package
 
 ## Runtime dependency notes
 
-`kortyx` already re-exports agent/runtime/hooks/providers/memory/stream APIs.
+`kortyx` already re-exports agent/runtime/hooks/providers/stream APIs.
 
 You still need provider credentials at runtime (for example Google):
 

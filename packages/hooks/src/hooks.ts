@@ -1,5 +1,4 @@
 import type { InterruptInput, InterruptResult } from "@kortyx/core";
-import type { MemoryAdapter } from "@kortyx/memory";
 import { getHookContext } from "./context";
 import { awaitInterruptInternal } from "./interrupt";
 import { useReason as useReasonInternal } from "./reason/use-reason";
@@ -39,14 +38,6 @@ export function useReason<
   args: UseReasonArgs<TOutput, TRequest, TResponse>,
 ): Promise<UseReasonResult<TOutput, TResponse>> {
   return useReasonInternal(args);
-}
-
-export function useAiMemory(): MemoryAdapter {
-  const ctx = getHookContext();
-  if (!ctx.memoryAdapter) {
-    throw new Error("useAiMemory requires a memory adapter in runtime config.");
-  }
-  return ctx.memoryAdapter;
 }
 
 export function useInterrupt<
