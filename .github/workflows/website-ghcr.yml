@@ -74,7 +74,7 @@ jobs:
       - name: Install and build Railway image update helper
         working-directory: .tmp/image-update-and-redeploy
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npm run build
 
       - name: Update Railway staging service image and redeploy
