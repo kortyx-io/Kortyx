@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Kortyx monorepo (AI agent orchestration framework).",
-  "license": "Apache-2.0",
+  "license": "SEE LICENSE IN LICENSE",
   "homepage": "https://github.com/kortyx-io/kortyx#readme",
   "bugs": {
     "url": "https://github.com/kortyx-io/kortyx/issues"

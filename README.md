@@ -5,6 +5,7 @@ Kortyx is an **AI agent orchestration framework** (work in progress).
 - **GitHub (monorepo):** `kortyx-io/kortyx`
 - **Packages (npm):** published from `packages/*` (scoped `@kortyx/*` + unscoped `kortyx`)
 - **Apps:** `apps/website` (marketing/docs site), `apps/studio` (paid product in progress)
+- **Plugins:** flat feature folders under `plugins/*`
 
 ## Getting started (repo)
 
@@ -17,6 +18,7 @@ pnpm build
 
 - `packages/kortyx`: the “batteries included” meta-package
 - `packages/core`: core primitives (types, config, base abstractions)
+- `packages/sdk`: SDK surface for plugin and Studio integrations
 - `packages/runtime`: runtime/orchestrator wiring
 - `packages/agent`: agent composition utilities
 - `packages/providers`: LLM/provider integrations
@@ -42,4 +44,10 @@ See `SECURITY.md`.
 
 ## License
 
-Apache-2.0 (see `LICENSE`).
+Kortyx uses a mixed licensing model:
+
+- Apache-2.0 for the open framework packages and provider packages
+- Elastic License 2.0 for `apps/studio`
+- Per-plugin terms for `plugins/*`, defined by each plugin's `LICENSE.md`
+
+See `LICENSE` for the repository-wide license boundaries.
