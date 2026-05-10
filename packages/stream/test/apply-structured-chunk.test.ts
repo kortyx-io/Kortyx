@@ -1,21 +1,28 @@
 import { describe, expect, it } from "vitest";
 import {
   applyStructuredChunk,
+  reduceStructuredChunks,
   type StructuredStreamState,
 } from "../src/structured/apply-structured-chunk";
 import type { StructuredDataChunk } from "../src/types/structured-data";
 
-const baseChunk = (
-  chunk: Omit<StructuredDataChunk, "type" | "streamId" | "dataType"> & {
+type BaseChunkInput = {
+  [Kind in StructuredDataChunk["kind"]]: Omit<
+    Extract<StructuredDataChunk, { kind: Kind }>,
+    "type" | "streamId" | "dataType"
+  > & {
     streamId?: string;
     dataType?: string;
-  },
-): StructuredDataChunk => ({
-  type: "structured-data",
-  streamId: chunk.streamId ?? "stream-1",
-  dataType: chunk.dataType ?? "demo.data",
-  ...chunk,
-});
+  };
+}[StructuredDataChunk["kind"]];
+
+const baseChunk = (chunk: BaseChunkInput): StructuredDataChunk =>
+  ({
+    type: "structured-data",
+    streamId: chunk.streamId ?? "stream-1",
+    dataType: chunk.dataType ?? "demo.data",
+    ...chunk,
+  }) as StructuredDataChunk;
 
 describe("applyStructuredChunk", () => {
   it("supports dotted paths for nested set updates", () => {
@@ -37,6 +44,83 @@ describe("applyStructuredChunk", () => {
           body: "Hello",
         },
       },
+    });
+  });
+
+  it("supports array paths, appends, text deltas, and optional metadata", () => {
+    const withArray = applyStructuredChunk(
+      undefined,
+      baseChunk({
+        kind: "set",
+        path: "items.0.title",
+        value: "First",
+        node: "node-1",
+        id: "chunk-1",
+        schemaId: "schema-1",
+        schemaVersion: "2026-05",
+      }),
+    );
+    const withAppend = applyStructuredChunk(
+      withArray,
+      baseChunk({
+        kind: "append",
+        path: "tags",
+        items: ["alpha"],
+      }),
+    );
+    const withMoreAppend = applyStructuredChunk(
+      withAppend,
+      baseChunk({
+        kind: "append",
+        path: "tags",
+        items: ["beta"],
+      }),
+    );
+    const withDelta = applyStructuredChunk(
+      withMoreAppend,
+      baseChunk({
+        kind: "text-delta",
+        path: "body",
+        delta: "Hello",
+      }),
+    );
+    const withMoreDelta = applyStructuredChunk(
+      withDelta,
+      baseChunk({
+        kind: "text-delta",
+        path: "body",
+        delta: " world",
+      }),
+    );
+
+    expect(withArray).toMatchObject({
+      node: "node-1",
+      id: "chunk-1",
+      schemaId: "schema-1",
+      schemaVersion: "2026-05",
+      data: {
+        items: [{ title: "First" }],
+      },
+    });
+    expect(withMoreDelta.data).toEqual({
+      items: [{ title: "First" }],
+      tags: ["alpha", "beta"],
+      body: "Hello world",
+    });
+
+    expect(
+      applyStructuredChunk(
+        withMoreDelta,
+        baseChunk({
+          kind: "set",
+          path: "items.1.title",
+          value: "Second",
+        }),
+      ).data,
+    ).toEqual({
+      items: [{ title: "First" }, { title: "Second" }],
+      tags: ["alpha", "beta"],
+      body: "Hello world",
     });
   });
 
@@ -89,6 +173,74 @@ describe("applyStructuredChunk", () => {
         }),
       ),
     ).toThrow('Structured append requires path "items" to target an array');
+  });
+
+  it("throws when object and array path expectations conflict", () => {
+    const arrayState = applyStructuredChunk(
+      undefined,
+      baseChunk({
+        kind: "set",
+        path: "items.0",
+        value: "first",
+      }),
+    );
+
+    expect(() =>
+      applyStructuredChunk(
+        arrayState,
+        baseChunk({
+          kind: "set",
+          path: "items.name",
+          value: "bad",
+        }),
+      ),
+    ).toThrow(
+      'Structured path conflict at items for "items.name": expected object container, received array.',
+    );
+
+    const objectState = applyStructuredChunk(
+      undefined,
+      baseChunk({
+        kind: "set",
+        path: "items.name",
+        value: "bad",
+      }),
+    );
+
+    expect(() =>
+      applyStructuredChunk(
+        objectState,
+        baseChunk({
+          kind: "set",
+          path: "items.0",
+          value: "bad",
+        }),
+      ),
+    ).toThrow(
+      'Structured path conflict at items for "items.0": expected array container, received object.',
+    );
+
+    const nullState = applyStructuredChunk(
+      undefined,
+      baseChunk({
+        kind: "set",
+        path: "items",
+        value: null,
+      }),
+    );
+
+    expect(() =>
+      applyStructuredChunk(
+        nullState,
+        baseChunk({
+          kind: "set",
+          path: "items.0",
+          value: "bad",
+        }),
+      ),
+    ).toThrow(
+      'Structured path conflict at items for "items.0": expected array container, received null.',
+    );
   });
 
   it("throws on text-delta applied to an existing non-string target", () => {
@@ -231,5 +383,36 @@ describe("applyStructuredChunk", () => {
     ).toThrow(
       "Structured chunk streamId mismatch: expected stream-1, received stream-2.",
     );
+  });
+
+  it("reduces chunks into states keyed by stream id", () => {
+    expect(
+      reduceStructuredChunks([
+        baseChunk({
+          streamId: "stream-1",
+          kind: "set",
+          path: "title",
+          value: "One",
+        }),
+        baseChunk({
+          streamId: "stream-2",
+          kind: "final",
+          data: { title: "Two" },
+        }),
+      ]),
+    ).toEqual({
+      "stream-1": {
+        streamId: "stream-1",
+        dataType: "demo.data",
+        status: "streaming",
+        data: { title: "One" },
+      },
+      "stream-2": {
+        streamId: "stream-2",
+        dataType: "demo.data",
+        status: "done",
+        data: { title: "Two" },
+      },
+    });
   });
 });

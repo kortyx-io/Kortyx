@@ -74,7 +74,7 @@ describe("workflow validation", () => {
 });
 
 describe("workflow loading", () => {
-  it("loads JSON workflow text, buffers, and objects", () => {
+  it("loads JSON workflow text, buffers, YAML text, and objects", () => {
     const json = JSON.stringify(validWorkflow);
 
     expect(loadWorkflow(json)).toMatchObject({
@@ -84,9 +84,43 @@ describe("workflow loading", () => {
     expect(loadWorkflow(Buffer.from(json))).toMatchObject({
       id: "support-routing",
     });
+    expect(
+      loadWorkflow(`
+id: support-routing
+version: 1.0.0
+nodes:
+  start:
+    run: startNode
+edges:
+  - ["__start__", "start"]
+  - ["start", "__end__"]
+`),
+    ).toMatchObject({
+      id: "support-routing",
+      nodes: {
+        start: {
+          run: "startNode",
+        },
+      },
+    });
     expect(loadWorkflow(validWorkflow)).toMatchObject({
       id: "support-routing",
     });
+  });
+
+  it("accepts function-valued workflow node runners", () => {
+    const run = () => "done";
+
+    expect(
+      loadWorkflow({
+        ...validWorkflow,
+        nodes: {
+          start: {
+            run,
+          },
+        },
+      }).nodes.start?.run,
+    ).toBe(run);
   });
 
   it("rejects empty workflow text through the workflow schema", () => {

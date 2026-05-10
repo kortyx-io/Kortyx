@@ -75,10 +75,7 @@ const updateByParts = (args: {
   traversed?: string[];
 }): unknown => {
   const traversed = args.traversed ?? [];
-  const [part, ...rest] = args.parts;
-  if (part === undefined) {
-    return args.updateLeaf(args.input);
-  }
+  const [part, ...rest] = args.parts as [string, ...string[]];
 
   const container = cloneContainerForPart({
     current: args.input,

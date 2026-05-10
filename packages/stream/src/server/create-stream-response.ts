@@ -1,5 +1,6 @@
 // packages/stream/src/server/create-stream-response.ts
 import type { StreamChunk } from "../types/stream-chunk";
+import { JsonToSseTransformStream } from "./json-to-sse";
 
 export const STREAM_HEADERS = {
   "content-type": "text/event-stream",
@@ -7,19 +8,6 @@ export const STREAM_HEADERS = {
   connection: "keep-alive",
   "x-accel-buffering": "no",
 };
-
-class JsonToSseTransformStream extends TransformStream<unknown, string> {
-  constructor() {
-    super({
-      transform(part, controller) {
-        controller.enqueue(`data: ${JSON.stringify(part)}\n\n`);
-      },
-      flush(controller) {
-        controller.enqueue("data: [DONE]\n\n");
-      },
-    });
-  }
-}
 
 /**
  * Turns an AsyncIterable<StreamChunk> into a streamed HTTP Response.
@@ -34,10 +22,10 @@ export function createStreamResponse(
         for await (const chunk of stream) {
           controller.enqueue(chunk);
         }
-      } catch (err: any) {
+      } catch (err) {
         controller.enqueue({
           type: "error",
-          message: String(err?.message ?? err),
+          message: err instanceof Error ? err.message : String(err),
         } as StreamChunk);
       } finally {
         controller.close();

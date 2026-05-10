@@ -7,6 +7,7 @@ import {
   createStructuredStreamAccumulator,
   readStream,
   streamFromRoute,
+  summarizeStreamChunks,
   toSSE,
 } from "../src";
 import type { StreamChunk } from "../src/types/stream-chunk";
@@ -52,6 +53,38 @@ describe("readStream", () => {
       { type: "done" },
     ]);
     await expect(collectStream(readStream(null))).resolves.toEqual([]);
+  });
+
+  it("skips invalid JSON chunks and ignores trailing partial buffers", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    const body = new ReadableStream<Uint8Array>({
+      start(controller) {
+        const encoder = new TextEncoder();
+        controller.enqueue(
+          encoder.encode(
+            "data: not-json\n\n" +
+              'data: {"type":"message","content":"ok"}\n\n' +
+              'data: {"type":"message","content":"partial"}',
+          ),
+        );
+        controller.close();
+      },
+    });
+
+    try {
+      await expect(collectStream(readStream(body))).resolves.toEqual([
+        { type: "message", content: "ok" },
+      ]);
+      expect(warn).toHaveBeenCalledWith(
+        "Invalid JSON in stream chunk:",
+        "not-json",
+      );
+      expect(error).toHaveBeenCalledWith(expect.any(SyntaxError));
+    } finally {
+      warn.mockRestore();
+      error.mockRestore();
+    }
   });
 });
 
@@ -99,6 +132,46 @@ describe("consumeStream", () => {
     await expect(
       consumeStream(brokenStream(), { onError: vi.fn() }),
     ).rejects.toThrow("boom");
+  });
+
+  it("calls done when the stream ends without a done chunk", async () => {
+    const onDone = vi.fn();
+
+    await consumeStream(makeStream([{ type: "message", content: "hi" }]), {
+      onDone,
+    });
+
+    expect(onDone).toHaveBeenCalledTimes(1);
+  });
+
+  it("uses default handlers and default error messages", async () => {
+    const onError = vi.fn();
+
+    await expect(
+      consumeStream(makeStream([{ type: "error", message: "" }]), {
+        onError,
+      }),
+    ).resolves.toBeUndefined();
+    expect(onError).toHaveBeenCalledWith(expect.any(Error), {
+      type: "error",
+      message: "",
+    });
+    expect(onError.mock.calls[0]?.[0]).toMatchObject({
+      message: "Stream error.",
+    });
+
+    await expect(
+      consumeStream(
+        makeStream([{ type: "error", message: "" }, { type: "done" }]),
+      ),
+    ).resolves.toBeUndefined();
+
+    async function* brokenStream() {
+      yield* makeStream([]);
+      throw new Error("failed");
+    }
+
+    await expect(consumeStream(brokenStream())).rejects.toThrow("failed");
   });
 });
 
@@ -163,6 +236,81 @@ describe("streamFromRoute", () => {
       { type: "error", message: "offline" },
       { type: "done" },
     ]);
+
+    await expect(
+      collectStream(
+        streamFromRoute({
+          endpoint: "https://kortyx.test/chat",
+          body: {},
+          fetchImpl: async () =>
+            new Response("not-json", {
+              status: 503,
+            }),
+        }),
+      ),
+    ).resolves.toEqual([
+      { type: "error", message: "Request failed (503)" },
+      { type: "done" },
+    ]);
+
+    await expect(
+      collectStream(
+        streamFromRoute({
+          endpoint: "https://kortyx.test/chat",
+          body: {},
+          fetchImpl: async () =>
+            new Response(JSON.stringify({ message: "unavailable" }), {
+              status: 502,
+            }),
+        }),
+      ),
+    ).resolves.toEqual([
+      { type: "error", message: "Request failed (502)" },
+      { type: "done" },
+    ]);
+
+    await expect(
+      collectStream(
+        streamFromRoute({
+          endpoint: "https://kortyx.test/chat",
+          body: {},
+          fetchImpl: async () => {
+            throw "offline";
+          },
+        }),
+      ),
+    ).resolves.toEqual([
+      { type: "error", message: "offline" },
+      { type: "done" },
+    ]);
+  });
+
+  it("yields error and done when no fetch implementation is available", async () => {
+    const originalFetch = globalThis.fetch;
+
+    try {
+      Object.defineProperty(globalThis, "fetch", {
+        configurable: true,
+        value: undefined,
+      });
+
+      await expect(
+        collectStream(
+          streamFromRoute({
+            endpoint: "https://kortyx.test/chat",
+            body: {},
+          }),
+        ),
+      ).resolves.toEqual([
+        { type: "error", message: "No fetch implementation available." },
+        { type: "done" },
+      ]);
+    } finally {
+      Object.defineProperty(globalThis, "fetch", {
+        configurable: true,
+        value: originalFetch,
+      });
+    }
   });
 });
 
@@ -186,6 +334,16 @@ describe("server stream helpers", () => {
       text: "fallback",
       structured: [chunks[2]],
     });
+    expect(
+      summarizeStreamChunks([
+        { type: "message", content: "fallback" },
+        { type: "text-delta", delta: "preferred" },
+        { type: "message" } as StreamChunk,
+      ]),
+    ).toEqual({
+      text: "preferred",
+      structured: [],
+    });
 
     const response = toSSE(makeStream([{ type: "done" }]));
     expect(response.headers.get("content-type")).toBe("text/event-stream");
@@ -200,6 +358,16 @@ describe("server stream helpers", () => {
       })(),
     );
     await expect(responseText(errorResponse)).resolves.toContain(
+      '"message":"stream failed"',
+    );
+
+    const nonErrorResponse = createStreamResponse(
+      (async function* () {
+        yield* makeStream([]);
+        throw "stream failed";
+      })(),
+    );
+    await expect(responseText(nonErrorResponse)).resolves.toContain(
       '"message":"stream failed"',
     );
   });
@@ -222,6 +390,21 @@ describe("createStructuredStreamAccumulator", () => {
     expect(
       accumulator.applyStreamChunk({ type: "message", content: "skip" }),
     ).toBeUndefined();
+    expect(
+      accumulator.applyStreamChunk({
+        type: "structured-data",
+        streamId: "profile",
+        dataType: "profile",
+        kind: "set",
+        path: "role",
+        value: "engineer",
+      }),
+    ).toMatchObject({
+      data: {
+        name: "Ada",
+        role: "engineer",
+      },
+    });
 
     accumulator.apply({
       type: "structured-data",
