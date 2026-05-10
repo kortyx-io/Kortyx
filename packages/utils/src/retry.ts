@@ -25,8 +25,9 @@ export async function withRetries<T>(
 ): Promise<T> {
   const total = Math.max(1, Math.floor(options.retries));
   const retryOn = options.retryOn ?? (async () => true);
+  let attempt = 1;
 
-  for (let attempt = 1; attempt <= total; attempt++) {
+  while (true) {
     try {
       return await fn(attempt);
     } catch (err) {
@@ -45,11 +46,9 @@ export async function withRetries<T>(
           ? options.delayMs(attempt)
           : (options.delayMs ?? 0);
       await sleep(Math.max(0, delay));
+      attempt++;
     }
   }
-
-  // Should never reach here due to loop logic
-  throw new Error("withRetries: exhausted attempts without returning");
 }
 
 // Convenience helpers

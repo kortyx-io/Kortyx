@@ -19,11 +19,7 @@ export async function consumeStream(
   stream: AsyncIterable<StreamChunk>,
   handlers: ConsumeStreamHandlers = {},
 ): Promise<void> {
-  let doneCalled = false;
-
   const callDone = async () => {
-    if (doneCalled) return;
-    doneCalled = true;
     await handlers.onDone?.();
   };
 

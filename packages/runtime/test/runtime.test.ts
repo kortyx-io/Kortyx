@@ -3,6 +3,7 @@ import {
   buildInitialGraphState,
   clearRegisteredNodes,
   createFrameworkAdapterFromEnv,
+  createInMemoryFrameworkAdapter,
   createInMemoryPendingRequestStore,
   createInMemoryWorkflowRegistry,
   getCheckpointer,
@@ -63,6 +64,12 @@ describe("createInMemoryWorkflowRegistry", () => {
     ).rejects.toThrow(
       'Workflow "missing" not found (fallback "also-missing" missing too).',
     );
+
+    const noFallbackRegistry = createInMemoryWorkflowRegistry([]);
+    await expect(noFallbackRegistry.get("missing")).resolves.toBeNull();
+    await expect(
+      noFallbackRegistry.select("missing", { fallbackId: "" }),
+    ).rejects.toThrow('Workflow "missing" not found.');
   });
 });
 
@@ -88,6 +95,10 @@ describe("pending request store", () => {
     await store.save(pendingRecord({ token: "token-2" }));
     await store.delete("token-2");
     await expect(store.get("token-2")).resolves.toBeNull();
+
+    await expect(store.update("missing", { node: "ignored" })).resolves.toBe(
+      undefined,
+    );
   });
 });
 
@@ -101,6 +112,7 @@ describe("node registry", () => {
 
     expect(listRegisteredNodes()).toEqual(["a", "b"]);
     expect(getRegisteredNode("a")).toBe(a);
+    expect(getRegisteredNode("missing")).toBeNull();
     expect(resolveNode("b")).toBe(b);
     expect(() => resolveNode("missing")).toThrow(
       "Node 'missing' is not registered.",
@@ -139,12 +151,51 @@ describe("initial graph state and framework adapter", () => {
     expect(adapter.kind).toBe("in-memory");
     expect(adapter.ttlMs).toBe(5000);
     expect(adapter.cleanupRun).toEqual(expect.any(Function));
+
+    const defaultAdapter = createFrameworkAdapterFromEnv({});
+    expect(defaultAdapter.kind).toBe("in-memory");
+    expect(defaultAdapter.ttlMs).toBe(15 * 60 * 1000);
+  });
+
+  it("cleans up in-memory framework checkpoints best-effort", async () => {
+    const adapter = createInMemoryFrameworkAdapter();
+    const config = {
+      configurable: { thread_id: "run-1", checkpoint_ns: "" },
+    };
+    await adapter.checkpointer.put(
+      config,
+      {
+        v: 4,
+        id: "cp-1",
+        ts: "2026-01-01T00:00:00.000Z",
+        channel_values: {},
+        channel_versions: {},
+        versions_seen: {},
+      },
+      { source: "input", step: -1, parents: {} },
+      {},
+    );
+
+    await expect(adapter.cleanupRun?.("run-1", [])).resolves.toBeUndefined();
+    await expect(adapter.checkpointer.get(config)).resolves.toBeUndefined();
+
+    adapter.checkpointer.deleteThread = async () => {
+      throw new Error("cleanup failed");
+    };
+
+    await expect(adapter.cleanupRun?.("run-1", [])).resolves.toBeUndefined();
   });
 });
 
 describe("in-memory checkpoint saver", () => {
   it("reuses named checkpointers and creates request identifiers", () => {
     expect(getCheckpointer("same")).toBe(getCheckpointer("same"));
+    expect(getCheckpointer("")).toBe(getCheckpointer("__default__"));
+    const oldest = getCheckpointer("evict-0");
+    for (let i = 1; i <= 201; i++) {
+      getCheckpointer(`evict-${i}`);
+    }
+    expect(getCheckpointer("evict-0")).not.toBe(oldest);
     expect(makeResumeToken()).toEqual(expect.any(String));
     expect(makeRequestId("human")).toMatch(/^human-/);
   });
@@ -192,11 +243,138 @@ describe("in-memory checkpoint saver", () => {
       channel_values: { state: "next" },
     });
     await expect(saver.get(firstConfig)).resolves.toBeUndefined();
+    await expect(saver.getTuple({ configurable: {} })).resolves.toBeUndefined();
+    await expect(
+      saver.getTuple({
+        configurable: {
+          thread_id: "thread-1",
+          checkpoint_ns: "ns",
+          checkpoint_id: "missing",
+        },
+      }),
+    ).resolves.toBeUndefined();
 
     const tuple = await saver.getTuple(secondConfig);
+    expect(tuple?.parentConfig).toEqual(firstConfig);
     expect(tuple?.pendingWrites).toEqual([["task", "messages", "kept"]]);
+
+    const noParentSaver = createInMemoryCheckpointSaver();
+    const noParentConfig = await noParentSaver.put(
+      baseConfig,
+      first,
+      { source: "input", step: -1, parents: {} },
+      {},
+    );
+    const noParentTuple = await noParentSaver.getTuple(noParentConfig);
+    expect(noParentTuple?.parentConfig).toBeUndefined();
+
+    const duplicateSaver = createInMemoryCheckpointSaver({
+      maxWritesPerCheckpoint: 10,
+    });
+    const duplicateConfig = await duplicateSaver.put(
+      baseConfig,
+      first,
+      { source: "input", step: -1, parents: {} },
+      {},
+    );
+    await duplicateSaver.putWrites(
+      duplicateConfig,
+      [["messages", "first"]],
+      "task",
+    );
+    await duplicateSaver.putWrites(
+      duplicateConfig,
+      [["messages", "ignored"]],
+      "task",
+    );
+    await expect(
+      duplicateSaver.getTuple(duplicateConfig),
+    ).resolves.toMatchObject({
+      pendingWrites: [["task", "messages", "first"]],
+    });
+
+    await saver.putWrites({}, [["messages", "ignored"]], "task");
+    await saver.putWrites(
+      { configurable: { thread_id: "thread-1", checkpoint_ns: "ns" } },
+      [["messages", "ignored"]],
+      "task",
+    );
+    await saver.putWrites(
+      {
+        configurable: {
+          thread_id: "thread-1",
+          checkpoint_ns: "ns",
+          checkpoint_id: "missing",
+        },
+      },
+      [["messages", "ignored"]],
+      "task",
+    );
+
+    await saver.put(
+      {
+        configurable: {
+          thread_id: "thread-2",
+          checkpoint_ns: "ns",
+        },
+      },
+      { ...first, id: "cp-other" },
+      { source: "input", step: -1, parents: {} },
+      {},
+    );
 
     await saver.deleteThread("thread-1");
     await expect(saver.get(baseConfig)).resolves.toBeUndefined();
+    await expect(
+      saver.get({
+        configurable: {
+          thread_id: "thread-2",
+          checkpoint_ns: "ns",
+        },
+      }),
+    ).resolves.toMatchObject({ id: "cp-other" });
+    await noParentSaver.deleteThread("thread-1");
+    await duplicateSaver.deleteThread("thread-1");
+  });
+
+  it("serializes values and handles version edge cases", async () => {
+    const saver = createInMemoryCheckpointSaver();
+
+    const [, encoded] = await saver.serde.dumpsTyped({ ok: true });
+    await expect(saver.serde.loadsTyped("json", encoded)).resolves.toEqual({
+      ok: true,
+    });
+    await expect(
+      saver.serde.loadsTyped("json", '{"ok":true}'),
+    ).resolves.toEqual({ ok: true });
+    expect(saver.getNextVersion(undefined)).toBe(1);
+    expect(saver.getNextVersion(2)).toBe(3);
+    const getNextVersion = saver.getNextVersion as (
+      current: number | string | undefined,
+    ) => number;
+    expect(() => getNextVersion("v1")).toThrow(
+      "Please override this method to use string versions.",
+    );
+    await expect(
+      saver.put(
+        {},
+        {
+          v: 4,
+          id: "cp-1",
+          ts: "2026-01-01T00:00:00.000Z",
+          channel_values: {},
+          channel_versions: {},
+          versions_seen: {},
+        },
+        { source: "input", step: -1, parents: {} },
+        {},
+      ),
+    ).rejects.toThrow('missing "thread_id"');
+
+    const listed: unknown[] = [];
+    for await (const item of saver.list({ configurable: {} })) {
+      listed.push(item);
+    }
+    expect(listed).toEqual([]);
   });
 });

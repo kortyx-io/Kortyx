@@ -14,8 +14,7 @@ export function getCheckpointer(key: string): BaseCheckpointSaver {
 
   // Simple FIFO eviction to avoid unbounded growth in long-lived dev servers.
   if (map.size > MAX_CHECKPOINTERS) {
-    const first = map.keys().next().value as string | undefined;
-    if (first) map.delete(first);
+    map.delete(map.keys().next().value as string);
   }
 
   return saver;

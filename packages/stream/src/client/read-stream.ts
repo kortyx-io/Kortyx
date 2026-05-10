@@ -19,7 +19,7 @@ export async function* readStream(
 
     buffer += decoder.decode(value, { stream: true });
     const parts = buffer.split("\n\n");
-    buffer = parts.pop() ?? "";
+    buffer = parts.pop() as string;
 
     for (const part of parts) {
       if (!part.startsWith("data: ")) continue;
@@ -27,7 +27,7 @@ export async function* readStream(
       if (payload.trim() === "[DONE]") return;
       try {
         yield JSON.parse(payload) as StreamChunk;
-      } catch (err: any) {
+      } catch (err) {
         console.warn("Invalid JSON in stream chunk:", payload);
         console.error(err);
       }
