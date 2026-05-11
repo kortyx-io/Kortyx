@@ -245,12 +245,13 @@ describe("createLiveChatPieces", () => {
 
     accumulator.processChunk({
       type: "interrupt",
-      value: {
-        resumeToken: "resume-1",
-        requestId: "request-1",
+      requestId: "request-1",
+      resumeToken: "resume-1",
+      input: {
         kind: "text",
+        multiple: false,
       },
-    } as StreamChunk);
+    });
     accumulator.processChunk({
       type: "error",
       message: "stream failed",

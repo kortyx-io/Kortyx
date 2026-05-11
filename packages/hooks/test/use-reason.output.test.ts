@@ -472,11 +472,7 @@ describe("useReason output flow", () => {
     const { node } = createNode();
     const state = createState();
     const startSpan = vi.fn(
-      ({
-        name,
-      }: {
-        name: "useReason" | "runReasonEngine";
-      }): ReasonTraceSpan => ({
+      (_args: { name: "useReason" | "runReasonEngine" }): ReasonTraceSpan => ({
         end: vi.fn(),
         addEvent: vi.fn(),
         fail: vi.fn(),
@@ -1041,9 +1037,12 @@ describe("useReason output flow", () => {
       path: "body",
       delta: "Hello",
     });
-    expect(
-      structuredEvents.some((event) => event.payload.kind === "final"),
-    ).toBe(false);
+    const structuredPayloads = structuredEvents.map(
+      (event) => event.payload as { kind?: string; streamId?: string },
+    );
+    expect(structuredPayloads.some((payload) => payload.kind === "final")).toBe(
+      false,
+    );
 
     const textEvents = emitted.filter((x) => x.event.startsWith("text-"));
     expect(textEvents).toHaveLength(0);
@@ -1162,8 +1161,11 @@ describe("useReason output flow", () => {
       (x) => x.event === "structured_data",
     );
     expect(structuredEvents).toHaveLength(5);
+    const structuredPayloads = structuredEvents.map(
+      (event) => event.payload as { streamId?: string },
+    );
     expect(
-      new Set(structuredEvents.map((event) => event.payload.streamId)),
+      new Set(structuredPayloads.map((payload) => payload.streamId)),
     ).toEqual(new Set([result.opId]));
     expect(structuredEvents[0]?.payload).toMatchObject({
       kind: "append",
