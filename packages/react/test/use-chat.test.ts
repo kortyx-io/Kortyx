@@ -499,8 +499,59 @@ describe("useChat", () => {
     });
   });
 
-  it("clears messages and calls storage.clearMessages()", async () => {
+  it("responds to an interrupt piece without exposing resume protocol fields", async () => {
+    const contexts: Parameters<ChatTransport["stream"]>[0][] = [];
+    const transport: ChatTransport = {
+      stream: async (context) => {
+        contexts.push(context);
+        await context.onChunk({
+          type: "done",
+        });
+      },
+    };
+    const memory = createMemoryStorage();
+
+    const { result } = renderHook(() =>
+      useChat({
+        transport,
+        storage: memory.storage,
+      }),
+    );
+
+    await flushEffects();
+
+    await act(async () => {
+      await result.current.respondToInterrupt(
+        {
+          id: "interrupt-1",
+          type: "interrupt",
+          resumeToken: "resume-1",
+          requestId: "request-1",
+          kind: "choice",
+          question: "Pick one",
+          multiple: false,
+          options: [{ id: "product", label: "Product" }],
+        },
+        { selected: ["product"] },
+      );
+    });
+
+    expect(contexts[0]?.messages.at(-1)).toMatchObject({
+      role: "user",
+      content: "product",
+      metadata: {
+        resume: {
+          token: "resume-1",
+          requestId: "request-1",
+          selected: ["product"],
+        },
+      },
+    });
+  });
+
+  it("separates clearing visible messages from resetting the session", async () => {
     const memory = createMemoryStorage({
+      sessionId: "session-1",
       messages: [
         {
           id: "assistant-1",
@@ -522,16 +573,63 @@ describe("useChat", () => {
     await flushEffects();
 
     act(() => {
-      result.current.clearChat();
+      result.current.clearMessages();
     });
     await flushEffects();
 
     expect(result.current.messages).toEqual([]);
     expect(memory.getClearMessagesCalls()).toBe(1);
+    expect(memory.getState().sessionId).toBe("session-1");
     expect(memory.getState().messages).toEqual([]);
+
+    act(() => {
+      result.current.resetChat();
+    });
+    await flushEffects();
+
+    expect(memory.getState().sessionId).toBeNull();
   });
 
-  it("resets streaming state when transport throws", async () => {
+  it("uses the latest transport after rerender", async () => {
+    const firstTransport: ChatTransport = {
+      stream: vi.fn(async ({ onChunk }) => {
+        await onChunk({ type: "message", content: "old" });
+        await onChunk({ type: "done" });
+      }),
+    };
+    const secondTransport: ChatTransport = {
+      stream: vi.fn(async ({ onChunk }) => {
+        await onChunk({ type: "message", content: "new" });
+        await onChunk({ type: "done" });
+      }),
+    };
+    const memory = createMemoryStorage();
+
+    const { result, rerender } = renderHook(
+      ({ transport }) =>
+        useChat({
+          transport,
+          storage: memory.storage,
+        }),
+      { initialProps: { transport: firstTransport } },
+    );
+
+    await flushEffects();
+    rerender({ transport: secondTransport });
+
+    await act(async () => {
+      await result.current.send("hello");
+    });
+
+    expect(firstTransport.stream).not.toHaveBeenCalled();
+    expect(secondTransport.stream).toHaveBeenCalledTimes(1);
+    expect(result.current.messages.at(-1)).toMatchObject({
+      role: "assistant",
+      content: "new",
+    });
+  });
+
+  it("surfaces transport errors and resets streaming state", async () => {
     const transportError = new Error("transport failed");
     const transport: ChatTransport = {
       stream: async () => {
@@ -557,10 +655,62 @@ describe("useChat", () => {
     await flushEffects();
 
     expect(result.current.isStreaming).toBe(false);
+    expect(result.current.error).toBe(transportError);
     expect(result.current.messages).toHaveLength(1);
     expect(result.current.messages[0]).toMatchObject({
       role: "user",
       content: "hello",
     });
+
+    act(() => {
+      result.current.clearError();
+    });
+
+    expect(result.current.error).toBeNull();
+  });
+
+  it("aborts an active stream without recording a transport error", async () => {
+    let seenSignal: AbortSignal | undefined;
+    const transport: ChatTransport = {
+      stream: vi.fn(
+        ({ signal }) =>
+          new Promise<void>((_resolve, reject) => {
+            seenSignal = signal;
+            signal?.addEventListener("abort", () => {
+              const abortError = new Error("aborted");
+              abortError.name = "AbortError";
+              reject(abortError);
+            });
+          }),
+      ),
+    };
+    const memory = createMemoryStorage();
+
+    const { result } = renderHook(() =>
+      useChat({
+        transport,
+        storage: memory.storage,
+      }),
+    );
+
+    await flushEffects();
+
+    let sendPromise: Promise<void> | undefined;
+    await act(async () => {
+      sendPromise = result.current.send("hello") as Promise<void>;
+      await Promise.resolve();
+    });
+
+    expect(result.current.isStreaming).toBe(true);
+    expect(result.current.canAbort).toBe(true);
+
+    await act(async () => {
+      result.current.abort();
+      await sendPromise;
+    });
+
+    expect(seenSignal?.aborted).toBe(true);
+    expect(result.current.isStreaming).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 });

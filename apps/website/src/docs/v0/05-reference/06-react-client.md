@@ -65,9 +65,53 @@ export function ChatPage() {
 - finalized `messages`
 - live `streamContentPieces`
 - `isStreaming`
+- `error` and `clearError()`
+- `abort()` and `canAbort`
 - interrupt resume handling
 - structured stream accumulation
 - default browser storage unless you override it
+
+## Messages and active streams
+
+`messages` contains finalized chat history only. While the assistant is still streaming, render the active assistant response from `streamContentPieces`.
+
+This separation is intentional:
+
+- persisted history does not change on every token
+- active text, structured data, interrupts, and errors can render before finalization
+- finalized assistant messages can keep their debug chunks after the stream ends
+
+When a stream finishes, `useChat(...)` builds the assistant message and appends it to `messages`.
+
+## Runtime controls
+
+`useChat(...)` exposes controls for common chat lifecycle cases:
+
+- `abort()` stops the active stream when the transport supports `AbortSignal`
+- `canAbort` is true while a stream is active
+- `error` stores the latest transport or stream error
+- `clearError()` clears that error state
+- `clearMessages()` clears visible/persisted messages and keeps the current session
+- `resetSession()` clears the current session id
+- `resetChat()` clears messages, active stream state, errors, and session id
+
+`clearChat()` remains available as a compatibility alias for resetting the chat.
+
+> **Good to know:** `clearMessages()` is the right choice for a "clear visible history" button. Use `resetChat()` when you want a new local chat session.
+
+## Interrupt responses
+
+For low-level control, call `respondToHumanInput(...)` with the resume token and request id.
+
+For UI components rendering a `HumanInputPiece`, use `respondToInterrupt(...)` so the component can pass back the same interrupt piece it received.
+
+`respondToInterrupt(piece, { selected })` handles choice and multi-choice interrupts. `respondToInterrupt(piece, { text })` handles text interrupts.
+
+## Abort support
+
+Route transports created with `createRouteChatTransport(...)` receive the `AbortSignal` from `useChat(...)` and pass it to `fetch`.
+
+Custom transports should forward `context.signal` to their own request layer if they want `abort()` to stop the active stream.
 
 ## `useChat(...)` options
 
