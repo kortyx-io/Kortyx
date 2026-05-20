@@ -98,6 +98,26 @@ describe("createBrowserChatStorage", () => {
     ]);
   });
 
+  it("supports configuring maxMessages without custom serializers", () => {
+    const storage = createBrowserChatStorage<StoredMessage>({
+      maxMessages: 1,
+    });
+
+    storage.save({
+      sessionId: null,
+      workflowId: "",
+      includeHistory: true,
+      messages: [
+        { id: "m1", role: "user", content: "one" },
+        { id: "m2", role: "assistant", content: "two" },
+      ],
+    });
+
+    expect(storage.load()).toMatchObject({
+      messages: [{ id: "m2", role: "assistant", content: "two" }],
+    });
+  });
+
   it("clears only saved messages", () => {
     const storage = createBrowserChatStorage<StoredMessage>({
       parseMessage,

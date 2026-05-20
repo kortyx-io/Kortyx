@@ -1,7 +1,7 @@
 "use client";
 
 import type { StreamChunk } from "@kortyx/stream/browser";
-import { useEffect, useRef, useState } from "react";
+import { type RefObject, useEffect, useRef, useState } from "react";
 import { buildAssistantMessage } from "./build-assistant-message";
 import { type ChatStorage, createBrowserChatStorage } from "./chat-storage";
 import type { ChatTransport, OutgoingChatMessage } from "./chat-transport";
@@ -23,6 +23,8 @@ const defaultCreateId = () => {
 export type UseChatValue = {
   messages: ChatMsg[];
   isStreaming: boolean;
+  canAbort: boolean;
+  error: Error | null;
   streamContentPieces: ContentPiece[];
   streamDebug: StreamChunk[];
   lastAssistantId: string | null;
@@ -35,8 +37,17 @@ export type UseChatValue = {
     selected: string[];
     text?: string;
   }) => Promise<void> | void;
+  respondToInterrupt: (
+    piece: HumanInputPiece,
+    response?: { selected?: string[] | undefined; text?: string | undefined },
+  ) => Promise<void> | void;
   setMessages: React.Dispatch<React.SetStateAction<ChatMsg[]>>;
+  clearMessages: () => void;
+  resetSession: () => void;
+  resetChat: () => void;
   clearChat: () => void;
+  abort: () => void;
+  clearError: () => void;
   includeHistory: boolean;
   setIncludeHistory: React.Dispatch<React.SetStateAction<boolean>>;
 };
@@ -49,14 +60,10 @@ export type UseChatOptions = {
 
 const defaultStorage = createBrowserChatStorage<ChatMsg>();
 
-function useInitialValue<T>(value: T): T {
-  const ref = useRef<T | undefined>(undefined);
-
-  if (ref.current === undefined) {
-    ref.current = value;
-  }
-
-  return ref.current;
+function useLatestRef<T>(value: T): RefObject<T> {
+  const ref = useRef(value);
+  ref.current = value;
+  return ref;
 }
 
 function findActiveTextInterrupt(args: {
@@ -87,12 +94,14 @@ function findActiveTextInterrupt(args: {
 }
 
 export function useChat(options: UseChatOptions): UseChatValue {
-  const transport = useInitialValue(options.transport);
-  const storage = useInitialValue(options.storage ?? defaultStorage);
-  const createId = useInitialValue(options.createId ?? defaultCreateId);
+  const resolvedStorage = options.storage ?? defaultStorage;
+  const transportRef = useLatestRef(options.transport);
+  const storageRef = useLatestRef(resolvedStorage);
+  const createId = useRef(options.createId ?? defaultCreateId).current;
 
   const [messages, setMessages] = useState<ChatMsg[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
   const [streamContentPieces, setStreamContentPieces] = useState<
     ContentPiece[]
   >([]);
@@ -101,6 +110,7 @@ export function useChat(options: UseChatOptions): UseChatValue {
   const [workflowId, setWorkflowId] = useState("");
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [didHydrateStorage, setDidHydrateStorage] = useState(false);
+  const abortControllerRef = useRef<AbortController | null>(null);
   const { streamDebug, clearStreamDebug, createRecorder } =
     useChatStreamDebug();
   const { applyStreamChunk, clear: clearStructuredStreams } =
@@ -110,6 +120,7 @@ export function useChat(options: UseChatOptions): UseChatValue {
 
   useEffect(() => {
     let cancelled = false;
+    const storage = resolvedStorage;
 
     void Promise.resolve(storage.load()).then((storedState) => {
       if (cancelled) return;
@@ -136,10 +147,11 @@ export function useChat(options: UseChatOptions): UseChatValue {
     return () => {
       cancelled = true;
     };
-  }, [storage]);
+  }, [resolvedStorage]);
 
   useEffect(() => {
     if (!didHydrateStorage) return;
+    const storage = storageRef.current;
 
     void storage.save({
       sessionId,
@@ -152,17 +164,45 @@ export function useChat(options: UseChatOptions): UseChatValue {
     includeHistory,
     messages,
     sessionId,
-    storage,
+    storageRef,
     workflowId,
   ]);
 
-  const clearChat = () => {
+  const clearActiveStream = () => {
+    abortControllerRef.current?.abort();
+    abortControllerRef.current = null;
+    setIsStreaming(false);
     setMessages([]);
     setStreamContentPieces([]);
     clearStreamDebug();
     clearStructuredStreams();
     setLastAssistantId(null);
-    void storage.clearMessages();
+  };
+
+  const clearMessages = () => {
+    clearActiveStream();
+    void storageRef.current.clearMessages();
+  };
+
+  const resetSession = () => {
+    setSessionId(null);
+  };
+
+  const resetChat = () => {
+    clearActiveStream();
+    resetSession();
+    setError(null);
+    void storageRef.current.clearMessages();
+  };
+
+  const clearChat = resetChat;
+
+  const clearError = () => {
+    setError(null);
+  };
+
+  const abort = () => {
+    abortControllerRef.current?.abort();
   };
 
   const persistSessionId = (sid: string) => {
@@ -180,6 +220,7 @@ export function useChat(options: UseChatOptions): UseChatValue {
     messagesToSend: OutgoingChatMessage[];
     debugLabel: string;
     openDebugOnInterrupt?: boolean;
+    signal?: AbortSignal | undefined;
   }) => {
     clearStructuredStreams();
     setStreamContentPieces([]);
@@ -198,10 +239,11 @@ export function useChat(options: UseChatOptions): UseChatValue {
         }),
     });
 
-    await transport.stream({
+    await transportRef.current.stream({
       sessionId: args.sid,
       workflowId,
       messages: args.messagesToSend,
+      ...(args.signal ? { signal: args.signal } : {}),
       onChunk: (chunk: StreamChunk) => {
         debug.push(chunk);
 
@@ -212,11 +254,17 @@ export function useChat(options: UseChatOptions): UseChatValue {
           return;
         }
 
+        if (chunk.type === "error") {
+          setError(new Error(chunk.message));
+        }
+
         return pieces.processChunk(chunk, {
           openDebugOnInterrupt: args.openDebugOnInterrupt,
         });
       },
     });
+
+    if (args.signal?.aborted) return;
 
     const assistant = buildAssistantMessage({
       createId,
@@ -228,6 +276,12 @@ export function useChat(options: UseChatOptions): UseChatValue {
     clearStructuredStreams();
     setStreamContentPieces([]);
     clearStreamDebug();
+  };
+
+  const isAbortError = (value: unknown, signal: AbortSignal): boolean => {
+    if (signal.aborted) return true;
+    if (!(value instanceof Error)) return false;
+    return value.name === "AbortError";
   };
 
   const respondToHumanInput = async ({
@@ -242,6 +296,7 @@ export function useChat(options: UseChatOptions): UseChatValue {
     text?: string;
   }) => {
     if (isStreaming) return;
+    setError(null);
     const label: string =
       typeof text === "string" && text.length > 0
         ? text
@@ -257,6 +312,8 @@ export function useChat(options: UseChatOptions): UseChatValue {
     setStreamContentPieces([]);
     clearStreamDebug();
     clearStructuredStreams();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     try {
       const resumePayload: Record<string, unknown> = {
@@ -280,15 +337,42 @@ export function useChat(options: UseChatOptions): UseChatValue {
         sid,
         messagesToSend,
         debugLabel: "runChat (resume)",
+        signal: abortController.signal,
       });
+    } catch (err) {
+      if (isAbortError(err, abortController.signal)) return;
+      const nextError = err instanceof Error ? err : new Error(String(err));
+      setError(nextError);
+      throw err;
     } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
       setIsStreaming(false);
     }
+  };
+
+  const respondToInterrupt = async (
+    piece: HumanInputPiece,
+    response?: { selected?: string[] | undefined; text?: string | undefined },
+  ) => {
+    const text = response?.text;
+    const selected =
+      response?.selected ??
+      (typeof text === "string" && text.length > 0 ? [text] : []);
+
+    return respondToHumanInput({
+      resumeToken: piece.resumeToken,
+      requestId: piece.requestId,
+      selected,
+      ...(text !== undefined ? { text } : {}),
+    });
   };
 
   const send = async (text: string) => {
     const content = text.trim();
     if (!content || isStreaming) return;
+    setError(null);
 
     const activeTextInterrupt = findActiveTextInterrupt({
       messages,
@@ -313,6 +397,8 @@ export function useChat(options: UseChatOptions): UseChatValue {
     setStreamContentPieces([]);
     clearStreamDebug();
     clearStructuredStreams();
+    const abortController = new AbortController();
+    abortControllerRef.current = abortController;
 
     try {
       const sid = resolveSessionId();
@@ -328,8 +414,17 @@ export function useChat(options: UseChatOptions): UseChatValue {
         messagesToSend,
         debugLabel: "runChat (send)",
         openDebugOnInterrupt: true,
+        signal: abortController.signal,
       });
+    } catch (err) {
+      if (isAbortError(err, abortController.signal)) return;
+      const nextError = err instanceof Error ? err : new Error(String(err));
+      setError(nextError);
+      throw err;
     } finally {
+      if (abortControllerRef.current === abortController) {
+        abortControllerRef.current = null;
+      }
       setIsStreaming(false);
     }
   };
@@ -337,6 +432,8 @@ export function useChat(options: UseChatOptions): UseChatValue {
   return {
     messages,
     isStreaming,
+    canAbort: isStreaming,
+    error,
     streamContentPieces,
     streamDebug,
     lastAssistantId,
@@ -344,8 +441,14 @@ export function useChat(options: UseChatOptions): UseChatValue {
     setWorkflowId,
     send,
     respondToHumanInput,
+    respondToInterrupt,
     setMessages,
+    clearMessages,
+    resetSession,
+    resetChat,
     clearChat,
+    abort,
+    clearError,
     includeHistory,
     setIncludeHistory,
   };

@@ -13,6 +13,7 @@ export type ChatTransportContext = {
   sessionId: string;
   workflowId: string;
   messages: OutgoingChatMessage[];
+  signal?: AbortSignal | undefined;
 };
 
 export type ChatTransportChunkHandler = (
@@ -64,6 +65,7 @@ export function createRouteChatTransport<TBody>(
         ...(args.method ? { method: args.method } : {}),
         ...(args.headers ? { headers: args.headers } : {}),
         ...(args.fetchImpl ? { fetchImpl: args.fetchImpl } : {}),
+        ...(context.signal ? { signal: context.signal } : {}),
       };
 
       return streamFromRoute({

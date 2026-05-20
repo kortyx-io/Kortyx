@@ -59,19 +59,10 @@ describe("createChatTransport", () => {
   });
 
   it("creates route transports with derived request bodies and optional request settings", async () => {
+    const controller = new AbortController();
+    let seenInit: RequestInit | undefined;
     const fetchImpl = async (_endpoint: string, init?: RequestInit) => {
-      expect(init).toMatchObject({
-        method: "PUT",
-        headers: {
-          "content-type": "application/json",
-          authorization: "Bearer token",
-        },
-        body: JSON.stringify({
-          sessionId: "session-1",
-          workflowId: "workflow-1",
-          count: 1,
-        }),
-      });
+      seenInit = init;
 
       return new Response(
         new ReadableStream<Uint8Array>({
@@ -103,12 +94,26 @@ describe("createChatTransport", () => {
 
     await transport.stream({
       ...baseContext,
+      signal: controller.signal,
       onChunk: (chunk) => {
         seen.push(chunk.type);
         return undefined;
       },
     });
 
+    expect(seenInit).toMatchObject({
+      method: "PUT",
+      headers: {
+        "content-type": "application/json",
+        authorization: "Bearer token",
+      },
+      body: JSON.stringify({
+        sessionId: "session-1",
+        workflowId: "workflow-1",
+        count: 1,
+      }),
+    });
+    expect(seenInit?.signal).toBe(controller.signal);
     expect(seen).toEqual(["status"]);
   });
 });
